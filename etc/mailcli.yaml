@@ -1,0 +1,29 @@
+# mailcli sample configuration
+# Copy to one of:
+#   ./mailcli.yaml            (current directory, highest precedence)
+#   $HOME/.config/mailcli.yaml
+#   $HOME/etc/mailcli.yaml
+#   /etc/mailcli.yaml         (system-wide, lowest precedence)
+
+smtp:
+  server: mail.example.com
+  port: 587
+  username: user@example.com
+  password: secret
+  from: user@example.com
+  tls: true
+  insecure: false
+  auth: plain
+  timeout: 15
+  max-size: 5242880   # 5 MB
+
+imap:
+  server: mail.example.com
+  port: 993
+  username: user@example.com
+  password: secret
+  ssl: true
+  insecure: false
+  inbox: INBOX
+  download-dir: .
+  timeout: 15

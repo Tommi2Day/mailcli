@@ -2,8 +2,7 @@
 
 Command-line tool for sending mail via SMTP and reading mail via IMAP.
 
-![CI](https://github.com/tommi2day/mailcli/actions/workflows/main.yml/badge.svg)
-[![codecov](https://codecov.io/gh/Tommi2Day/mailcli/branch/main/graph/badge.svg?token=3EBK75VLC8)](https://codecov.io/gh/Tommi2Day/mailcli)
+[![codecov](https://codecov.io/gh/Tommi2Day/mailcli/graph/badge.svg?token=XYOGKC8RVO)](https://codecov.io/gh/Tommi2Day/mailcli)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/tommi2day/mailcli)
 
 ## Installation
