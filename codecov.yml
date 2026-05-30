@@ -1,8 +1,9 @@
 coverage:
   range: 50..75
   ignore:
-    - "*/vendor/*"
-    - "*/test/*"
+    - "vendor/*"
+    - "test/*"
+    - "main.go"
   status:
     patch: false
     project:

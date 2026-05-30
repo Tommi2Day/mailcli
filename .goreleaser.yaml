@@ -71,6 +71,9 @@ nfpms:
     contents:
       - src: "*.md"
         dst: /usr/share/doc/{{ .ProjectName }}/
+      - src: "etc/mailcli.yaml"
+        dst: /etc/mailcli.yaml.sample
+
 
 release:
   github:
