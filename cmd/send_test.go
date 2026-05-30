@@ -32,6 +32,12 @@ func resetSMTPState() {
 	smtpTimeout = 0
 	smtpHELO = ""
 	smtpMaxSize = 0
+	smtpSignMethod = ""
+	smtpSignPrivKey = ""
+	smtpSignPubKey = ""
+	smtpSignPassphrase = ""
+	smtpSignCertChain = ""
+	smtpSignIncChain = false
 	sendCmd.Flags().VisitAll(func(f *pflag.Flag) {
 		f.Changed = false
 	})

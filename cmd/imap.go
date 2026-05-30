@@ -15,19 +15,23 @@ import (
 const defaultInbox = "INBOX"
 
 var (
-	imapServer      = ""
-	imapPort        = 143
-	imapUsername    = ""
-	imapPassword    = ""
-	imapInbox       = defaultInbox
-	imapSSL         = false
-	imapTLS         = false
-	imapInsecure    = false
-	imapTimeout     = int64(0)
-	imapDownloadDir = "."
-	imapSearchText  = ""
-	imapMessageIDs  = ""
-	imapSaveAttach  = false
+	imapServer        = ""
+	imapPort          = 143
+	imapUsername      = ""
+	imapPassword      = ""
+	imapInbox         = defaultInbox
+	imapSSL           = false
+	imapTLS           = false
+	imapInsecure      = false
+	imapTimeout       = int64(0)
+	imapDownloadDir   = "."
+	imapSearchText    = ""
+	imapMessageIDs    = ""
+	imapSaveAttach    = false
+	imapVerify        = false
+	imapVerifyPubKey  = ""
+	imapVerifyPrivKey = ""
+	imapVerifyPass    = ""
 
 	imapCmd = &cobra.Command{
 		Use:   "imap",
@@ -89,6 +93,10 @@ func init() {
 
 	imapReadCmd.Flags().StringVar(&imapSearchText, "text", "", "only show messages containing this text")
 	imapReadCmd.Flags().BoolVar(&imapSaveAttach, "save-attachments", false, "save attachments to download-dir")
+	imapReadCmd.Flags().BoolVar(&imapVerify, "verify-signature", false, "verify message signatures if present")
+	imapReadCmd.Flags().StringVar(&imapVerifyPubKey, "verify-public-key", "", "public key or certificate for signature verification")
+	imapReadCmd.Flags().StringVar(&imapVerifyPrivKey, "verify-private-key", "", "private key or S/MIME bundle for signature verification")
+	imapReadCmd.Flags().StringVar(&imapVerifyPass, "verify-passphrase", "", "passphrase for the verify key")
 
 	imapSearchCmd.Flags().StringVarP(&imapSearchText, "text", "T", "", "search text in message body")
 
@@ -231,6 +239,9 @@ func imapReadMessages(cmd *cobra.Command, _ []string) error {
 			continue
 		}
 		printParsedMessage(cmd, parsed)
+		if imapVerify {
+			verifyParsedSignature(cmd, parsed)
+		}
 	}
 	return nil
 }
@@ -249,6 +260,62 @@ func printParsedMessage(cmd *cobra.Command, parsed maillib.MailType) {
 	}
 	for i, part := range parsed.TextParts {
 		fmt.Fprintf(cmd.OutOrStdout(), "--- Body (part %d) ---\n%s\n", i+1, part)
+	}
+}
+
+// extractSignatureBlock parses an inline signature block appended by applySignature in send.go.
+// Format: "<body>\n\n--- <method> Signature ---\n<base64sig>"
+func extractSignatureBlock(text string) (method, originalBody, sig string, ok bool) {
+	const marker = "\n\n--- "
+	const suffix = " Signature ---\n"
+	idx := strings.Index(text, marker)
+	if idx < 0 {
+		return
+	}
+	after := text[idx+len(marker):]
+	suffIdx := strings.Index(after, suffix)
+	if suffIdx < 0 {
+		return
+	}
+	method = after[:suffIdx]
+	sig = strings.TrimSpace(after[suffIdx+len(suffix):])
+	originalBody = text[:idx]
+	ok = true
+	return
+}
+
+func verifyParsedSignature(cmd *cobra.Command, parsed maillib.MailType) {
+	for _, att := range parsed.Attachments {
+		if strings.HasSuffix(strings.ToLower(att), "smime.p7s") {
+			fmt.Fprintf(cmd.OutOrStdout(), "Signature-Method: smime\nSignature-Status: detected (S/MIME verification requires raw MIME body)\n")
+			return
+		}
+	}
+	for _, part := range parsed.TextParts {
+		method, body, sig, ok := extractSignatureBlock(part)
+		if !ok {
+			continue
+		}
+		if !maillib.IsValidSigningMethod(method) {
+			fmt.Fprintf(cmd.OutOrStdout(), "Signature-Method: %s\nSignature-Status: unknown signing method\n", method)
+			return
+		}
+		cfg := &maillib.MailSignatureConfig{
+			Method:         maillib.SigningMethod(method),
+			PublicKeyFile:  imapVerifyPubKey,
+			PrivateKeyFile: imapVerifyPrivKey,
+			KeyPassphrase:  imapVerifyPass,
+		}
+		valid, err := maillib.VerifyMailSignature(body, sig, cfg)
+		switch {
+		case err != nil:
+			fmt.Fprintf(cmd.OutOrStdout(), "Signature-Method: %s\nSignature-Status: error (%s)\n", method, err)
+		case valid:
+			fmt.Fprintf(cmd.OutOrStdout(), "Signature-Method: %s\nSignature-Status: valid\n", method)
+		default:
+			fmt.Fprintf(cmd.OutOrStdout(), "Signature-Method: %s\nSignature-Status: invalid\n", method)
+		}
+		return
 	}
 }
 

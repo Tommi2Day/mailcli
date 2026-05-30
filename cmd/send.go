@@ -33,6 +33,13 @@ var (
 	smtpHELO        = ""
 	smtpMaxSize     = int64(0)
 
+	smtpSignMethod     = ""
+	smtpSignPrivKey    = ""
+	smtpSignPubKey     = ""
+	smtpSignPassphrase = ""
+	smtpSignCertChain  = ""
+	smtpSignIncChain   = false
+
 	sendCmd = &cobra.Command{
 		Use:          "send",
 		Short:        "Send an email via SMTP",
@@ -62,6 +69,12 @@ func init() {
 	sendCmd.Flags().Int64Var(&smtpTimeout, "smtp.timeout", 0, "connection timeout in seconds (0=default 15s)")
 	sendCmd.Flags().StringVar(&smtpHELO, "smtp.helo", "", "custom HELO hostname")
 	sendCmd.Flags().Int64Var(&smtpMaxSize, "smtp.max-size", 0, "max attachment size in bytes (0=5MB default)")
+	sendCmd.Flags().StringVar(&smtpSignMethod, "smtp.sign.method", "", "signing method for outgoing mail: rsa, ecdsa, gpg, smime")
+	sendCmd.Flags().StringVar(&smtpSignPrivKey, "smtp.sign.private-key", "", "private key or S/MIME certificate bundle file")
+	sendCmd.Flags().StringVar(&smtpSignPubKey, "smtp.sign.public-key", "", "public key or certificate file (S/MIME)")
+	sendCmd.Flags().StringVar(&smtpSignPassphrase, "smtp.sign.passphrase", "", "key passphrase")
+	sendCmd.Flags().StringVar(&smtpSignCertChain, "smtp.sign.cert-chain", "", "comma-separated cert chain PEM files (S/MIME)")
+	sendCmd.Flags().BoolVar(&smtpSignIncChain, "smtp.sign.include-chain", false, "include cert chain in S/MIME signature")
 
 	if err := viper.BindPFlags(sendCmd.Flags()); err != nil {
 		log.Fatal(err)
@@ -92,8 +105,12 @@ func sendMail(cmd *cobra.Command, _ []string) error {
 
 	config := buildSMTPConfig(server, port, viper.GetString("smtp.username"), viper.GetString("smtp.password"))
 	mailObj := buildMailObject(viper.GetString("smtp.from"), to, viper.GetString("smtp.cc"), viper.GetString("smtp.bcc"), viper.GetString("smtp.attach"))
+	body := viper.GetString("smtp.body")
 
-	if err := config.SendMail(mailObj, subject, viper.GetString("smtp.body")); err != nil {
+	if err := applySignature(mailObj, &body); err != nil {
+		return err
+	}
+	if err := config.SendMail(mailObj, subject, body); err != nil {
 		return fmt.Errorf("send failed: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "Mail sent successfully")
@@ -124,6 +141,50 @@ func buildSMTPConfig(server string, port int, username, password string) *mailli
 		config.SetContentType(mail.TypeTextHTML)
 	}
 	return config
+}
+
+// applySignature configures signing on outgoing mail.
+// For S/MIME it sets SignatureConfig (handled by SendMail).
+// For RSA/ECDSA/GPG it signs the body and appends the signature block.
+func applySignature(mailObj *maillib.MailType, body *string) error {
+	method := viper.GetString("smtp.sign.method")
+	if method == "" {
+		return nil
+	}
+	if !maillib.IsValidSigningMethod(method) {
+		return fmt.Errorf("invalid signing method %q: valid methods are %s",
+			method, strings.Join(maillib.GetSupportedSigningMethods(), ", "))
+	}
+	cfg := buildSendSignatureConfig()
+	if cfg.Method == maillib.SigningMethodSMIME {
+		mailObj.SignatureConfig = cfg
+		return nil
+	}
+	sig, err := maillib.SignMailContent(*body, cfg)
+	if err != nil {
+		return fmt.Errorf("signing failed: %w", err)
+	}
+	*body = *body + "\n\n--- " + method + " Signature ---\n" + sig
+	return nil
+}
+
+func buildSendSignatureConfig() *maillib.MailSignatureConfig {
+	var certChain []string
+	if chain := viper.GetString("smtp.sign.cert-chain"); chain != "" {
+		for _, f := range strings.Split(chain, ",") {
+			if f = strings.TrimSpace(f); f != "" {
+				certChain = append(certChain, f)
+			}
+		}
+	}
+	return &maillib.MailSignatureConfig{
+		Method:           maillib.SigningMethod(viper.GetString("smtp.sign.method")),
+		PrivateKeyFile:   viper.GetString("smtp.sign.private-key"),
+		PublicKeyFile:    viper.GetString("smtp.sign.public-key"),
+		KeyPassphrase:    viper.GetString("smtp.sign.passphrase"),
+		CertificateChain: certChain,
+		IncludeChain:     viper.GetBool("smtp.sign.include-chain"),
+	}
 }
 
 func buildMailObject(from, to, cc, bcc, attach string) *maillib.MailType {

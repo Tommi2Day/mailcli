@@ -26,6 +26,10 @@ func resetImapState() {
 	imapSearchText = ""
 	imapMessageIDs = ""
 	imapSaveAttach = false
+	imapVerify = false
+	imapVerifyPubKey = ""
+	imapVerifyPrivKey = ""
+	imapVerifyPass = ""
 	imapCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
 		f.Changed = false
 	})
@@ -37,6 +41,41 @@ func resetImapState() {
 	})
 	imapSearchCmd.Flags().VisitAll(func(f *pflag.Flag) {
 		f.Changed = false
+	})
+}
+
+func TestExtractSignatureBlock(t *testing.T) {
+	t.Run("No signature block", func(t *testing.T) {
+		_, _, _, ok := extractSignatureBlock("just a normal message")
+		assert.False(t, ok)
+	})
+	t.Run("RSA block", func(t *testing.T) {
+		body := "hello world"
+		sig := "dGVzdHNpZ25hdHVyZQ=="
+		text := body + "\n\n--- rsa Signature ---\n" + sig
+		method, extractedBody, extractedSig, ok := extractSignatureBlock(text)
+		require.True(t, ok)
+		assert.Equal(t, "rsa", method)
+		assert.Equal(t, body, extractedBody)
+		assert.Equal(t, sig, extractedSig)
+	})
+	t.Run("ECDSA block", func(t *testing.T) {
+		body := "test content\nwith newlines"
+		sig := "ZWNkc2FzaWc="
+		text := body + "\n\n--- ecdsa Signature ---\n" + sig
+		method, extractedBody, extractedSig, ok := extractSignatureBlock(text)
+		require.True(t, ok)
+		assert.Equal(t, "ecdsa", method)
+		assert.Equal(t, body, extractedBody)
+		assert.Equal(t, sig, extractedSig)
+	})
+	t.Run("Incomplete marker", func(t *testing.T) {
+		_, _, _, ok := extractSignatureBlock("hello\n\n--- notcomplete")
+		assert.False(t, ok)
+	})
+	t.Run("Marker but no suffix", func(t *testing.T) {
+		_, _, _, ok := extractSignatureBlock("hello\n\n--- rsa missing")
+		assert.False(t, ok)
 	})
 }
 
@@ -114,6 +153,18 @@ func TestImapCommand(t *testing.T) {
 		require.Errorf(t, err, "imap to invalid port should return an error")
 		assert.Containsf(t, err.Error(), "connect", "error should mention connect: %s", err)
 		t.Logf("expected error: %v", err)
+	})
+	t.Run("Imap read verify-signature flag accepted", func(t *testing.T) {
+		resetImapState()
+		args := []string{
+			"imap", "read",
+			"--config", test.TestDir + "/no_config.yaml",
+			"--verify-signature",
+			"--unit-test",
+		}
+		_, err := common.CmdRun(RootCmd, args)
+		require.Errorf(t, err, "imap read should fail without server")
+		assert.Containsf(t, err.Error(), "required", "error should be about missing server, not unknown flag: %s", err)
 	})
 	t.Run("Imap with config file sets server", func(t *testing.T) {
 		resetImapState()
