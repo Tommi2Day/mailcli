@@ -1,0 +1,16 @@
+app: "mailcli"
+info: true
+
+smtp:
+  server: "127.0.0.1"
+  port: 31025
+  from: "root@test.local"
+
+imap:
+  server: "127.0.0.1"
+  port: 31993
+  username: "info@test.local"
+  password: "testpass"
+  ssl: true
+  insecure: true
+  inbox: "INBOX"

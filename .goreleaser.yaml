@@ -1,0 +1,83 @@
+---
+project_name: mailcli
+version: 2
+builds:
+  - env:
+      - CGO_ENABLED=0
+    targets:
+      - linux_amd64
+      - linux_arm64
+      - windows_amd64
+      - darwin_amd64
+      - darwin_arm64
+    ldflags:
+      - -s -w
+      - -X github.com/tommi2day/mailcli/cmd.Version={{.Version}}
+      - -X github.com/tommi2day/mailcli/cmd.Commit={{.ShortCommit}}
+      - -X github.com/tommi2day/mailcli/cmd.Date={{ time "2006-01-02" }}
+      - -X github.com/tommi2day/mailcli/cmd.Name={{.ProjectName}}
+
+archives:
+  - id: archive
+    formats: tar.gz
+    format_overrides:
+      - goos: windows
+        formats: zip
+    strip_binary_directory: true
+    files:
+      - "*.md"
+
+changelog:
+  use: git
+  filters:
+    exclude:
+      - '^Merge branch'
+  groups:
+    - title: 'Features'
+      regexp: "^.*(feat|add)[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: 'Refactoring'
+      regexp: "^.*(refactor|chore)[(\\w)]*:+.*$"
+      order: 2
+    - title: Others
+      order: 999
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-beta"
+
+nfpms:
+  - id: packages
+    # dont use {{ .ProjectName }} here :(
+    package_name: mailcli
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    license: GPL-3
+    bindir: /usr/bin
+    vendor: Tommi2Day
+    maintainer: "Tommi2Day <tommi2day@github.com>"
+    description: |-
+      Command-line tool for sending mail via SMTP and reading mail via IMAP
+    formats:
+      - rpm
+      - deb
+    provides:
+      # dont use {{ .ProjectName }} here :(
+      - mailcli
+    contents:
+      - src: "*.md"
+        dst: /usr/share/doc/{{ .ProjectName }}/
+
+release:
+  github:
+    owner: tommi2day
+    name: mailcli
+  replace_existing_draft: true
+  draft: true
+  header: |
+    ## mailcli Release {{ .Tag }} ({{ time "2006-01-02" }})
+  target_commitish: '{{ .Commit }}'
