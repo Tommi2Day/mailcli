@@ -42,10 +42,14 @@ Flags use dots to match YAML nested keys and env var mapping:
 All subcommand flags are bound to viper via `viper.BindPFlags(cmd.Flags())` so `viper.GetString("smtp.server")` automatically resolves the right source.
 
 ### Command structure
-- `cmd/rootcmd.go` — `RootCmd`, `Execute()`, `initConfig()`, viper/cobra wiring, `hideGlobalFlags()` helper
-- `cmd/send.go` — `send` subcommand, wraps `maillib.SendMailConfigType.SendMail()`
-- `cmd/imap.go` — `imap` parent + `list/status/read/search/delete` subcommands, wraps `maillib.ImapType`
+- `cmd/rootcmd.go` — `RootCmd`, `Execute()`, `initConfig()`, viper/cobra wiring
+- `cmd/send.go` — `send` subcommand, wraps `maillib.SendMailConfigType.SendMail()`; `--smtp.sign.*` flags call `applySignature()` before sending
+- `cmd/imap.go` — `imap` parent + `list/status/read/search/delete` subcommands, wraps `maillib.ImapType`; `imap read` has `--verify-signature` flag that calls `verifyParsedSignature()` / `extractSignatureBlock()` after parsing
+- `cmd/sign.go` — `sign` and `verify` subcommands; wrap `maillib.SignMailContent` / `maillib.VerifyMailSignature`; bind to namespaced viper keys (`sign.*`, `verify.*`) to avoid global key collisions
 - `cmd/version.go` — `version` subcommand; `Version`, `Commit`, `Date` vars injected at build time via ldflags
+
+### Signing key namespacing
+`sign` and `verify` are separate cobra Commands that both register a `--method` flag. To prevent viper key collision, each flag is bound individually with `viper.BindPFlag("sign.method", ...)` and `viper.BindPFlag("verify.method", ...)` via `bindNamedFlags()` instead of `viper.BindPFlags()`. Tests must call `resetSignState()` / `resetVerifyState()` between subtests.
 
 ### Test layout
 - `test/testinit.go` — `InitTestDirs()` changes the working directory to `test/`; auto-called by `init()` so it runs for all tests in the `cmd` package that import `github.com/tommi2day/mailcli/test`
@@ -58,5 +62,5 @@ All subcommand flags are bound to viper via `viper.BindPFlags(cmd.Flags())` so `
 ### Critical: cobra flag state in tests
 Cobra does **not** reset flag values between `cmd.Execute()` calls when the same command object is reused. Because flags are bound to package-level variables, values from one subtest leak into the next. Additionally, `pflag.Flag.Changed` must be reset to `false` so viper falls back to yaml/env instead of the stale flag value.
 
-Call `resetSmtpState()` / `resetImapState()` at the start of every send/imap subtest. These helpers reset both the Go variables and `f.Changed = false` on all flags.
+Call `resetSMTPState()` / `resetImapState()` / `resetSignState()` / `resetVerifyState()` at the start of every subtest. These helpers reset both the Go variables and `f.Changed = false` on all flags.
 

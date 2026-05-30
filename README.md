@@ -133,10 +133,21 @@ Output: total messages, unseen count, and flags for the mailbox.
 #### imap read — Read messages
 
 ```sh
-mailcli imap read [--text=<filter>] [--save-attachments] ...
+mailcli imap read [--text=<filter>] [--save-attachments] [--verify-signature] ...
 ```
 
 Displays unseen messages by default. Use `--text` to filter by subject, sender, or body content. Use `--save-attachments` to write attachments to `--imap.download-dir`.
+
+Add `--verify-signature` to verify any inline signature block (RSA/ECDSA/GPG) or detect S/MIME signatures in the received message.
+
+| Flag | Description |
+|------|-------------|
+| `--verify-signature` | Verify message signatures if present |
+| `--verify-public-key` | Public key or certificate for verification |
+| `--verify-private-key` | Private key or S/MIME bundle (fallback) |
+| `--verify-passphrase` | Passphrase for the verify key |
+
+For **RSA/ECDSA/GPG** messages signed with `send --smtp.sign.*`, the inline signature block is cryptographically verified and the result is printed as `Signature-Status: valid` or `Signature-Status: invalid`. For **S/MIME**, the presence of `smime.p7s` is detected and reported — cryptographic verification requires the raw MIME body which is unavailable after IMAP parsing.
 
 #### imap search — Search messages
 
@@ -153,6 +164,91 @@ mailcli imap delete --ids=1,2,5 ...
 ```
 
 Permanently expunges the given sequence IDs from the mailbox.
+
+---
+
+### sign — Sign content and print the signature
+
+```sh
+mailcli sign --method=<method> --private-key=<file> --body=<text> [flags]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--method` / `-m` | Signing method: `rsa`, `ecdsa`, `gpg`, `smime` **(required)** |
+| `--private-key` | Private key or S/MIME certificate bundle PEM file **(required)** |
+| `--public-key` | Public key or certificate file (optional; used for self-verification output) |
+| `--body` / `-b` | Content to sign **(required)** |
+| `--passphrase` | Key passphrase |
+| `--cert-chain` | Comma-separated cert chain PEM files (S/MIME) |
+| `--include-chain` | Include cert chain in S/MIME signature |
+
+Prints `Method:` and `Signature:` (base64-encoded) to stdout.
+
+**Examples:**
+
+```sh
+# RSA sign
+mailcli sign --method=rsa --private-key=./mail.key --public-key=./mail.pub \
+  --body="hello world" --passphrase=secret
+
+# S/MIME sign (cert+key bundle)
+mailcli sign --method=smime --private-key=./bundle.pem --body="hello world"
+```
+
+---
+
+### verify — Verify a content signature
+
+```sh
+mailcli verify --method=<method> --body=<text> --signature=<base64> [flags]
+```
+
+| Flag | Description |
+|------|-------------|
+| `--method` / `-m` | Signing method: `rsa`, `ecdsa`, `gpg`, `smime` **(required)** |
+| `--public-key` | Public key or certificate file **(required for rsa/ecdsa/smime)** |
+| `--private-key` | S/MIME bundle fallback when no `--public-key` |
+| `--body` / `-b` | Content to verify **(required)** |
+| `--signature` | Base64-encoded signature **(required)** |
+| `--passphrase` | Key passphrase |
+
+Prints `Signature valid (<method>)` or `Signature invalid (<method>)`.
+
+**Example:**
+
+```sh
+mailcli verify --method=rsa --public-key=./mail.pub \
+  --body="hello world" --signature="<base64sig>"
+```
+
+---
+
+### Signing outgoing mail (send command)
+
+Add `--smtp.sign.*` flags to the `send` command to sign outgoing mail.
+
+| Flag | Description |
+|------|-------------|
+| `--smtp.sign.method` | Signing method: `rsa`, `ecdsa`, `gpg`, `smime` |
+| `--smtp.sign.private-key` | Private key or S/MIME certificate bundle |
+| `--smtp.sign.public-key` | Public key or certificate file (S/MIME) |
+| `--smtp.sign.passphrase` | Key passphrase |
+| `--smtp.sign.cert-chain` | Comma-separated cert chain PEM files (S/MIME) |
+| `--smtp.sign.include-chain` | Include cert chain in S/MIME signature |
+
+For **S/MIME**, the mail is sent as a proper `multipart/signed` MIME message (RFC 5751). For **RSA/ECDSA/GPG**, the base64 signature is appended to the body as a signature block.
+
+**Example:**
+
+```sh
+# Send S/MIME signed mail
+mailcli send \
+  --smtp.server=mail.example.com --smtp.port=587 --smtp.tls \
+  --smtp.from=me@example.com --smtp.to=you@example.com \
+  --smtp.subject="Signed mail" --smtp.body="See attached signature" \
+  --smtp.sign.method=smime --smtp.sign.private-key=./bundle.pem
+```
 
 ---
 

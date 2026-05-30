@@ -1,5 +1,19 @@
 # Changelog mailcli
 
+## [v1.1.0 - 2026-05-30]
+### New
+- `sign` command: sign content with rsa, ecdsa, gpg, or smime; prints base64 signature
+- `verify` command: verify a base64 signature against content
+- `send` command: add `--smtp.sign.*` flags to sign outgoing mail
+  - S/MIME produces proper `multipart/signed` MIME (RFC 5751)
+  - RSA/ECDSA/GPG appends a signature block to the body
+- `imap read` command: add `--verify-signature` flag to verify message signatures
+  - RSA/ECDSA/GPG inline blocks are cryptographically verified via `VerifyMailSignature`
+  - S/MIME presence detected via `smime.p7s` attachment (cryptographic verify not available post-parse)
+### Changed
+- upgrade `gomodules` to v1.25.0 (adds `maillib.MailSignatureConfig`, `SignMailContent`, `VerifyMailSignature`, `IsValidSigningMethod`)
+- upgrade `go-git/v5` to v1.19.1 (CVE-2026-34165, CVE-2026-33762)
+
 ## [v1.0.0 - 2026-05-30]
 ### New
 - initial release as Go CLI tool
