@@ -30,7 +30,7 @@ The CLI is built with **cobra** (commands) + **viper** (config).
 All mail operations delegate to `github.com/tommi2day/gomodules/maillib`.
 
 ### Config precedence (lowest → highest)
-1. YAML config file (`~/etc/mailcli.yaml` or `./mailcli.yaml`, or `--config` flag)
+1. YAML config file — searched in order, first found wins: `./mailcli.yaml`, `$HOME/.config/mailcli.yaml`, `$HOME/etc/mailcli.yaml`, `/etc/mailcli.yaml`; or set explicitly with `--config`
 2. Environment variables with prefix `MAILCLI_` (dots replaced by underscores, e.g. `MAILCLI_SMTP_SERVER`)
 3. CLI flags
 

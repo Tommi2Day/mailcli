@@ -18,7 +18,12 @@ go install github.com/tommi2day/mailcli@latest
 
 Settings are resolved in this order (later sources override earlier ones):
 
-1. YAML config file — searched in `~/etc/mailcli.yaml` and `./mailcli.yaml`, or set explicitly with `--config`
+1. YAML config file — searched in order, first found wins:
+   - `./mailcli.yaml` (current directory)
+   - `$HOME/.config/mailcli.yaml`
+   - `$HOME/etc/mailcli.yaml`
+   - `/etc/mailcli.yaml`
+   - or set explicitly with `--config`
 2. Environment variables — prefix `MAILCLI_`, dots replaced by underscores (e.g. `MAILCLI_SMTP_SERVER`)
 3. CLI flags
 

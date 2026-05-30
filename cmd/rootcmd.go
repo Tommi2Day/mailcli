@@ -67,9 +67,10 @@ func initConfig() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		etc := path.Join(home, "etc")
-		viper.AddConfigPath(etc)
 		viper.AddConfigPath(".")
+		viper.AddConfigPath(path.Join(home, ".config"))
+		viper.AddConfigPath(path.Join(home, "etc"))
+		viper.AddConfigPath("/etc")
 	} else {
 		viper.SetConfigFile(cfgFile)
 	}
