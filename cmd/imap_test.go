@@ -23,14 +23,19 @@ func resetImapState() {
 	imapInsecure = false
 	imapTimeout = 0
 	imapDownloadDir = "."
-	imapSearchText = ""
+	imapSearchQuery = ""
 	imapMessageIDs = ""
 	imapSaveAttach = false
 	imapVerify = false
 	imapVerifyPubKey = ""
 	imapVerifyPrivKey = ""
 	imapVerifyPass = ""
+	imapListFolders = false
+	imapListAll = false
 	imapCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+		f.Changed = false
+	})
+	imapListCmd.Flags().VisitAll(func(f *pflag.Flag) {
 		f.Changed = false
 	})
 	imapReadCmd.Flags().VisitAll(func(f *pflag.Flag) {
@@ -42,6 +47,26 @@ func resetImapState() {
 	imapSearchCmd.Flags().VisitAll(func(f *pflag.Flag) {
 		f.Changed = false
 	})
+}
+
+func TestContentTypeSecurityStatus(t *testing.T) {
+	cases := []struct {
+		header string
+		want   string
+	}{
+		{"", securityPlain},
+		{"Content-Type: text/plain; charset=utf-8\r\n", securityPlain},
+		{"Content-Type: multipart/signed; protocol=\"application/pkcs7-signature\"\r\n", securitySigned},
+		{"Content-Type: multipart/signed; protocol=\"application/pgp-signature\"\r\n", securitySigned},
+		{"Content-Type: application/pkcs7-mime; smime-type=signed-data\r\n", securitySigned},
+		{"Content-Type: application/pkcs7-mime; smime-type=enveloped-data\r\n", securityEncrypted},
+		{"Content-Type: multipart/encrypted; protocol=\"application/pgp-encrypted\"\r\n", securityEncrypted},
+		{"Content-Type: application/pgp-encrypted\r\n", securityEncrypted},
+	}
+	for _, tc := range cases {
+		got := contentTypeSecurityStatus(tc.header)
+		assert.Equalf(t, tc.want, got, "header: %q", tc.header)
+	}
 }
 
 func TestExtractSignatureBlock(t *testing.T) {

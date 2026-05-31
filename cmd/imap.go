@@ -3,6 +3,8 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"sort"
 	"strings"
 
 	goimap "github.com/emersion/go-imap"
@@ -23,6 +25,21 @@ const (
 	cmdSearch = "search"
 )
 
+const (
+	securityPlain     = "  "
+	securitySigned    = "S "
+	securityEncrypted = " E"
+	securityBoth      = "SE"
+)
+
+type listEntry struct {
+	seqNum   uint32
+	date     string
+	security string
+	from     string
+	subject  string
+}
+
 var (
 	imapServer        = ""
 	imapPort          = 143
@@ -34,13 +51,15 @@ var (
 	imapInsecure      = false
 	imapTimeout       = int64(0)
 	imapDownloadDir   = "."
-	imapSearchText    = ""
+	imapSearchQuery   = ""
 	imapMessageIDs    = ""
 	imapSaveAttach    = false
 	imapVerify        = false
 	imapVerifyPubKey  = ""
 	imapVerifyPrivKey = ""
 	imapVerifyPass    = ""
+	imapListFolders   = false
+	imapListAll       = false
 
 	imapCmd = &cobra.Command{
 		Use:   cmdImap,
@@ -50,8 +69,8 @@ var (
 
 	imapListCmd = &cobra.Command{
 		Use:          cmdList,
-		Short:        "List available mailboxes",
-		RunE:         imapListMailboxes,
+		Short:        "List messages in mailbox (unseen by default); use --folders to list mailboxes",
+		RunE:         imapList,
 		SilenceUsage: true,
 	}
 
@@ -85,29 +104,33 @@ var (
 )
 
 func init() {
-	imapCmd.PersistentFlags().StringVarP(&imapServer, "imap.server", "s", "", "IMAP server hostname or IP")
-	imapCmd.PersistentFlags().IntVarP(&imapPort, "imap.port", "p", 143, "IMAP server port")
+	imapCmd.PersistentFlags().StringVarP(&imapServer, "imap.server", "S", "", "IMAP server hostname or IP")
+	imapCmd.PersistentFlags().IntVarP(&imapPort, "imap.port", "P", 143, "IMAP server port")
 	imapCmd.PersistentFlags().StringVarP(&imapUsername, "imap.username", "u", "", "IMAP username")
-	imapCmd.PersistentFlags().StringVarP(&imapPassword, "imap.password", "P", "", "IMAP password")
+	imapCmd.PersistentFlags().StringVarP(&imapPassword, "imap.password", "p", "", "IMAP password")
 	imapCmd.PersistentFlags().StringVarP(&imapInbox, "imap.inbox", "i", defaultInbox, "mailbox/folder to use")
 	imapCmd.PersistentFlags().BoolVar(&imapSSL, "imap.ssl", false, "use IMAPS (SSL, port 993)")
 	imapCmd.PersistentFlags().BoolVar(&imapTLS, "imap.tls", false, "use STARTTLS")
 	imapCmd.PersistentFlags().BoolVar(&imapInsecure, "imap.insecure", false, "skip TLS/SSL certificate verification")
-	imapCmd.PersistentFlags().Int64Var(&imapTimeout, "imap.timeout", 0, "connection timeout in seconds")
+	imapCmd.PersistentFlags().Int64VarP(&imapTimeout, "imap.timeout", "T", 0, "connection timeout in seconds")
 	imapCmd.PersistentFlags().StringVarP(&imapDownloadDir, "imap.download-dir", "d", ".", "directory to save attachments")
 
 	if err := viper.BindPFlags(imapCmd.PersistentFlags()); err != nil {
 		log.Fatal(err)
 	}
 
-	imapReadCmd.Flags().StringVar(&imapSearchText, "text", "", "only show messages containing this text")
+	imapListCmd.Flags().BoolVar(&imapListFolders, "folders", false, "list mailboxes instead of messages")
+	imapListCmd.Flags().BoolVar(&imapListAll, "all", false, "list all messages (default: unseen only)")
+
+	imapReadCmd.Flags().StringVar(&imapMessageIDs, "ids", "", "comma-separated message sequence IDs to read")
+	imapReadCmd.Flags().StringVar(&imapSearchQuery, "query", "", "show only messages matching this string in any header or body (IMAP TEXT)")
 	imapReadCmd.Flags().BoolVar(&imapSaveAttach, "save-attachments", false, "save attachments to download-dir")
 	imapReadCmd.Flags().BoolVar(&imapVerify, "verify-signature", false, "verify message signatures if present")
 	imapReadCmd.Flags().StringVar(&imapVerifyPubKey, "verify-public-key", "", "public key or certificate for signature verification")
 	imapReadCmd.Flags().StringVar(&imapVerifyPrivKey, "verify-private-key", "", "private key or S/MIME bundle for signature verification")
 	imapReadCmd.Flags().StringVar(&imapVerifyPass, "verify-passphrase", "", "passphrase for the verify key")
 
-	imapSearchCmd.Flags().StringVarP(&imapSearchText, "text", "T", "", "search text in message body")
+	imapSearchCmd.Flags().StringVar(&imapSearchQuery, "query", "", "search string matched against any header or body (IMAP TEXT)")
 
 	imapDeleteCmd.Flags().StringVar(&imapMessageIDs, "ids", "", "comma-separated message sequence IDs to delete (required)")
 
@@ -160,7 +183,7 @@ func buildImapConfig() (*maillib.ImapType, error) {
 	return config, nil
 }
 
-func imapListMailboxes(cmd *cobra.Command, _ []string) error {
+func imapList(cmd *cobra.Command, _ []string) error {
 	config, err := buildImapConfig()
 	if err != nil {
 		return err
@@ -170,16 +193,193 @@ func imapListMailboxes(cmd *cobra.Command, _ []string) error {
 	}
 	defer config.LogOut()
 
-	mailboxes, err := config.ListMailboxes()
-	if err != nil {
-		return fmt.Errorf("list mailboxes failed: %w", err)
+	if imapListFolders {
+		mailboxes, err := config.ListMailboxes()
+		if err != nil {
+			return fmt.Errorf("list mailboxes failed: %w", err)
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Mailboxes on %s:\n", viper.GetString("imap.server"))
+		for _, mb := range mailboxes {
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", mb)
+		}
+		return nil
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "Mailboxes on %s:\n", viper.GetString("imap.server"))
-	for _, mb := range mailboxes {
-		fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", mb)
+	return imapListMessages(cmd, config)
+}
+
+func imapListMessages(cmd *cobra.Command, config *maillib.ImapType) error {
+	inbox := viper.GetString("imap.inbox")
+	if inbox == "" {
+		inbox = defaultInbox
+	}
+
+	seqset, empty, err := buildListSeqSet(config, inbox)
+	if err != nil {
+		return err
+	}
+	if empty {
+		label := "unseen "
+		if imapListAll {
+			label = ""
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "No %smessages in %s\n", label, inbox)
+		return nil
+	}
+
+	entries, err := fetchListEntries(config, seqset)
+	if err != nil {
+		return err
+	}
+	sort.Slice(entries, func(i, j int) bool { return entries[i].seqNum < entries[j].seqNum })
+
+	fmt.Fprintf(cmd.OutOrStdout(), "Messages in %s (%d listed):\n", inbox, len(entries))
+	for _, e := range entries {
+		fmt.Fprintf(cmd.OutOrStdout(), "  #%-4d  %-16s  %2s  %-35s  %s\n",
+			e.seqNum, e.date, e.security, truncate(e.from, 35), e.subject,
+		)
 	}
 	return nil
+}
+
+// buildListSeqSet returns the sequence set to fetch and whether the mailbox is
+// empty. Selects the mailbox as a side-effect (required before Fetch).
+func buildListSeqSet(config *maillib.ImapType, inbox string) (*goimap.SeqSet, bool, error) {
+	if imapListAll {
+		total, _, _, err := config.MBoxStatus(inbox)
+		if err != nil {
+			return nil, false, fmt.Errorf("list messages failed: %w", err)
+		}
+		if total == 0 {
+			return nil, true, nil
+		}
+		seqset, err := goimap.ParseSeqSet("1:*")
+		if err != nil {
+			return nil, false, fmt.Errorf("build seqset failed: %w", err)
+		}
+		return seqset, false, nil
+	}
+	ids, err := config.GetUnseenMessageIDs()
+	if err != nil {
+		return nil, false, fmt.Errorf("list messages failed: %w", err)
+	}
+	if len(ids) == 0 {
+		return nil, true, nil
+	}
+	seqset := new(goimap.SeqSet)
+	seqset.AddNum(ids...)
+	return seqset, false, nil
+}
+
+// fetchListEntries fetches ENVELOPE + Content-Type for the given sequence set
+// and returns one listEntry per message. No full body is downloaded.
+//
+// Fetch is run in a goroutine so the main goroutine can drain msgChan
+// concurrently; without this, a mailbox with more messages than the channel
+// buffer causes a deadlock (go-imap's reader goroutine blocks on send while
+// Fetch blocks waiting for the response to finish).
+func fetchListEntries(config *maillib.ImapType, seqset *goimap.SeqSet) ([]listEntry, error) {
+	ctSection := &goimap.BodySectionName{
+		BodyPartName: goimap.BodyPartName{
+			Specifier: goimap.HeaderSpecifier,
+			Fields:    []string{"Content-Type"},
+		},
+		Peek: true,
+	}
+	msgChan := make(chan *goimap.Message)
+	items := []goimap.FetchItem{goimap.FetchEnvelope, goimap.FetchUid, ctSection.FetchItem()}
+
+	fetchErr := make(chan error, 1)
+	go func() {
+		fetchErr <- config.Client.Fetch(seqset, items, msgChan)
+	}()
+
+	var entries []listEntry
+	for msg := range msgChan {
+		entries = append(entries, parseListEntry(msg, ctSection))
+	}
+	if err := <-fetchErr; err != nil {
+		return nil, fmt.Errorf("fetch message headers failed: %w", err)
+	}
+	return entries, nil
+}
+
+func parseListEntry(msg *goimap.Message, ctSection *goimap.BodySectionName) listEntry {
+	e := listEntry{seqNum: msg.SeqNum, security: securityPlain}
+	if env := msg.Envelope; env != nil {
+		e.date = env.Date.Format("2006-01-02 15:04")
+		e.subject = env.Subject
+		e.from = formatSenderAddress(env.From)
+	}
+	if r := msg.GetBody(ctSection); r != nil {
+		if data, readErr := io.ReadAll(r); readErr == nil {
+			e.security = contentTypeSecurityStatus(string(data))
+		}
+	}
+	return e
+}
+
+func formatSenderAddress(addrs []*goimap.Address) string {
+	if len(addrs) == 0 {
+		return ""
+	}
+	a := addrs[0]
+	if a.PersonalName != "" {
+		return a.PersonalName + " <" + a.MailboxName + "@" + a.HostName + ">"
+	}
+	return a.MailboxName + "@" + a.HostName
+}
+
+// contentTypeSecurityStatus inspects a raw Content-Type header block and returns
+// a 2-char indicator: S=signed, E=encrypted, SE=both, "  "=plain.
+// Detects S/MIME (pkcs7) and PGP/MIME (RFC 3156) from the Content-Type alone,
+// without downloading the message body.
+func contentTypeSecurityStatus(headerBlock string) string {
+	var ct string
+	for _, line := range strings.Split(headerBlock, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(strings.ToLower(line), "content-type:") {
+			ct = strings.ToLower(strings.TrimSpace(line[len("content-type:"):]))
+			break
+		}
+	}
+	if ct == "" {
+		return securityPlain
+	}
+
+	var signed, encrypted bool
+	switch {
+	case strings.HasPrefix(ct, "multipart/signed"):
+		signed = true
+	case strings.HasPrefix(ct, "multipart/encrypted"):
+		encrypted = true
+	case strings.HasPrefix(ct, "application/pkcs7-mime"):
+		if strings.Contains(ct, "enveloped-data") {
+			encrypted = true
+		} else {
+			signed = true
+		}
+	case strings.HasPrefix(ct, "application/pgp-encrypted"):
+		encrypted = true
+	}
+
+	switch {
+	case signed && encrypted:
+		return securityBoth
+	case signed:
+		return securitySigned
+	case encrypted:
+		return securityEncrypted
+	default:
+		return securityPlain
+	}
+}
+
+func truncate(s string, limit int) string {
+	if len(s) <= limit {
+		return s
+	}
+	return s[:limit-3] + "..."
 }
 
 func imapMailboxStatus(cmd *cobra.Command, _ []string) error {
@@ -219,11 +419,14 @@ func imapReadMessages(cmd *cobra.Command, _ []string) error {
 	defer config.LogOut()
 
 	var ids []uint32
-	if imapSearchText != "" {
+	switch {
+	case imapMessageIDs != "":
+		ids, err = parseMessageIDs(imapMessageIDs)
+	case imapSearchQuery != "":
 		criteria := goimap.NewSearchCriteria()
-		criteria.Text = []string{imapSearchText}
+		criteria.Text = []string{imapSearchQuery}
 		ids, err = config.SearchMessages(criteria)
-	} else {
+	default:
 		ids, err = config.GetUnseenMessageIDs()
 	}
 	if err != nil {
@@ -328,6 +531,19 @@ func verifyParsedSignature(cmd *cobra.Command, parsed maillib.MailType) {
 	}
 }
 
+func parseMessageIDs(raw string) ([]uint32, error) {
+	var ids []uint32
+	for _, idStr := range strings.Split(raw, ",") {
+		idStr = strings.TrimSpace(idStr)
+		var id uint32
+		if _, err := fmt.Sscanf(idStr, "%d", &id); err != nil {
+			return nil, fmt.Errorf("invalid message ID %q: %w", idStr, err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 func imapDeleteMessages(cmd *cobra.Command, _ []string) error {
 	config, err := buildImapConfig()
 	if err != nil {
@@ -341,16 +557,10 @@ func imapDeleteMessages(cmd *cobra.Command, _ []string) error {
 	}
 	defer config.LogOut()
 
-	var ids []uint32
-	for _, idStr := range strings.Split(imapMessageIDs, ",") {
-		idStr = strings.TrimSpace(idStr)
-		var id uint32
-		if _, scanErr := fmt.Sscanf(idStr, "%d", &id); scanErr != nil {
-			return fmt.Errorf("invalid message ID %q: %w", idStr, scanErr)
-		}
-		ids = append(ids, id)
+	ids, err := parseMessageIDs(imapMessageIDs)
+	if err != nil {
+		return err
 	}
-
 	if err = config.PurgeMessages(ids); err != nil {
 		return fmt.Errorf("delete messages failed: %w", err)
 	}
@@ -369,8 +579,8 @@ func imapSearch(cmd *cobra.Command, _ []string) error {
 	defer config.LogOut()
 
 	criteria := goimap.NewSearchCriteria()
-	if imapSearchText != "" {
-		criteria.Text = []string{imapSearchText}
+	if imapSearchQuery != "" {
+		criteria.Text = []string{imapSearchQuery}
 	} else {
 		criteria.WithoutFlags = []string{goimap.SeenFlag}
 	}
