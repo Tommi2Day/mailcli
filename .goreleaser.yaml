@@ -25,7 +25,8 @@ archives:
         formats: zip
     strip_binary_directory: true
     files:
-      - "*.md"
+      - "README.md"
+      - "CHANGELOG.md"
       - "etc/mailcli.yaml"
 
 changelog:
@@ -70,8 +71,10 @@ nfpms:
       # dont use {{ .ProjectName }} here :(
       - mailcli
     contents:
-      - src: "*.md"
+      - src: "README.md"
         dst: /usr/share/doc/{{ .ProjectName }}/
+      - src: "CHANGELOG.md"
+        dst: /usr/share/doc/{{ .ProjectName }}/CHANGELOG.md
       - src: "etc/mailcli.yaml"
         dst: /etc/mailcli.yaml.sample
 
