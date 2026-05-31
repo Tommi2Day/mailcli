@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/pflag"
@@ -114,5 +116,98 @@ func TestConfigPrecedence(t *testing.T) {
 		require.Errorf(t, err, "send should fail")
 		assert.Containsf(t, err.Error(), "flaghost.example.com", "flag should win over env var: %s", err)
 		assert.NotContainsf(t, err.Error(), "envhost.example.com", "env var host must not be used: %s", err)
+	})
+}
+
+func resetConfigCmdState() {
+	configOutput = ""
+	configSaveCmd.Flags().VisitAll(func(f *pflag.Flag) {
+		f.Changed = false
+	})
+}
+
+func TestConfigCommand(t *testing.T) {
+	test.InitTestDirs()
+
+	t.Run("Config show prints file path and smtp/imap sections", func(t *testing.T) {
+		resetRootState()
+		resetConfigCmdState()
+		args := []string{
+			cmdConfig, cmdConfigShow,
+			argConfig, test.TestDir + "/mailcli.yaml",
+			argUnitTest,
+		}
+		out, err := common.CmdRun(RootCmd, args)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Config file:")
+		assert.Contains(t, out, "mailcli.yaml")
+		assert.Contains(t, out, "smtp:")
+		assert.Contains(t, out, "imap:")
+		assert.Contains(t, out, "127.0.0.1")
+		assert.NotContains(t, out, "unit-test")
+		assert.NotContains(t, out, "config:")
+	})
+
+	t.Run("Config show with non-existent config shows attempted path", func(t *testing.T) {
+		resetRootState()
+		resetConfigCmdState()
+		args := []string{
+			cmdConfig, cmdConfigShow,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argUnitTest,
+		}
+		out, err := common.CmdRun(RootCmd, args)
+		require.NoError(t, err)
+		// viper.ConfigFileUsed() returns the attempted path even when the read fails
+		assert.Contains(t, out, "no_config.yaml")
+	})
+
+	t.Run("Config save writes non-zero settings to file", func(t *testing.T) {
+		resetRootState()
+		resetConfigCmdState()
+		outFile := filepath.Join(t.TempDir(), "saved.yaml")
+		args := []string{
+			cmdConfig, cmdConfigSave,
+			argConfig, test.TestDir + "/mailcli.yaml",
+			"--output=" + outFile,
+			argUnitTest,
+		}
+		out, err := common.CmdRun(RootCmd, args)
+		require.NoError(t, err)
+		assert.Contains(t, out, "Config saved to")
+		assert.Contains(t, out, outFile)
+
+		data, readErr := os.ReadFile(outFile)
+		require.NoError(t, readErr)
+		content := string(data)
+		assert.Contains(t, content, "smtp:")
+		assert.Contains(t, content, "imap:")
+		assert.Contains(t, content, "127.0.0.1")
+		assert.NotContains(t, content, "unit-test")
+		assert.NotContains(t, content, "config:")
+		// zero-value defaults must be stripped
+		assert.NotContains(t, content, "smtp.body")
+		assert.NotContains(t, content, "smtp.subject")
+	})
+
+	t.Run("Config save default output filename", func(t *testing.T) {
+		resetRootState()
+		resetConfigCmdState()
+		// Run in a temp dir so we don't pollute the working tree.
+		tmpDir := t.TempDir()
+		origDir, _ := os.Getwd()
+		require.NoError(t, os.Chdir(tmpDir))
+		defer func() { _ = os.Chdir(origDir) }()
+
+		args := []string{
+			cmdConfig, cmdConfigSave,
+			argConfig, test.TestDir + "/mailcli.yaml",
+			argUnitTest,
+		}
+		out, err := common.CmdRun(RootCmd, args)
+		require.NoError(t, err)
+		assert.Contains(t, out, configName+"."+configType)
+		_, statErr := os.Stat(filepath.Join(tmpDir, configName+"."+configType))
+		assert.NoError(t, statErr, "default output file should exist")
 	})
 }
