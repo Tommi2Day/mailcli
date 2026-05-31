@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/spf13/pflag"
@@ -18,9 +19,9 @@ func resetSMTPState() {
 	smtpUsername = ""
 	smtpPassword = ""
 	smtpFrom = ""
-	smtpTo = ""
-	smtpCC = ""
-	smtpBCC = ""
+	smtpTo = nil
+	smtpCC = nil
+	smtpBCC = nil
 	smtpSubject = ""
 	smtpBody = ""
 	smtpAttach = ""
@@ -91,7 +92,7 @@ func TestSendCommand(t *testing.T) {
 			cmdSend,
 			argConfig, test.TestDir + "/no_config.yaml",
 			argSMTPServer127,
-			"--smtp.port=19999",
+			argSMTPPortInvalid,
 			argSMTPTo,
 			argSMTPSubjectTest,
 			argSMTPBodyHello,
@@ -101,6 +102,40 @@ func TestSendCommand(t *testing.T) {
 		require.Errorf(t, err, "send to invalid port should return an error")
 		assert.Containsf(t, err.Error(), "send failed", "error should indicate send failed: %s", err)
 		t.Logf("expected error: %v", err)
+	})
+	t.Run("Send body from stdin when flag is absent", func(t *testing.T) {
+		resetSMTPState()
+		sendCmd.SetIn(strings.NewReader("hello from stdin"))
+		defer sendCmd.SetIn(nil)
+		args := []string{
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPServer127,
+			argSMTPPortInvalid,
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argUnitTest,
+		}
+		_, err := common.CmdRun(RootCmd, args)
+		require.Errorf(t, err, "send to invalid port should return a connection error")
+		assert.Containsf(t, err.Error(), "send failed", "should be a send error (body was read from stdin): %s", err)
+	})
+	t.Run("Send recipients as positional args", func(t *testing.T) {
+		resetSMTPState()
+		args := []string{
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPServer127,
+			argSMTPPortInvalid,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
+			"--",
+			"a@example.com", "b@example.com",
+		}
+		_, err := common.CmdRun(RootCmd, args)
+		require.Errorf(t, err, "send to invalid port should return a connection error")
+		assert.Containsf(t, err.Error(), "send failed", "should be a send error (recipients from positional args): %s", err)
 	})
 	t.Run("Send with config file sets server", func(t *testing.T) {
 		resetSMTPState()
