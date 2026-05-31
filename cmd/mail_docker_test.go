@@ -82,11 +82,11 @@ func prepareMailContainer() (container *dockertest.Resource, err error) {
 		},
 		ExposedPorts: []string{"25", "143", "465", "587", "993"},
 		PortBindings: map[docker.Port][]docker.PortBinding{
-			"25":  {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", smtpDockerPort)}},
-			"143": {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", imapDockerPort)}},
-			"465": {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", sslDockerPort)}},
-			"587": {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", tlsDockerPort)}},
-			"993": {{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", imapsDockerPort)}},
+			"25":  {{HostIP: dockerHostAllIfaces, HostPort: fmt.Sprintf("%d", smtpDockerPort)}},
+			"143": {{HostIP: dockerHostAllIfaces, HostPort: fmt.Sprintf("%d", imapDockerPort)}},
+			"465": {{HostIP: dockerHostAllIfaces, HostPort: fmt.Sprintf("%d", sslDockerPort)}},
+			"587": {{HostIP: dockerHostAllIfaces, HostPort: fmt.Sprintf("%d", tlsDockerPort)}},
+			"993": {{HostIP: dockerHostAllIfaces, HostPort: fmt.Sprintf("%d", imapsDockerPort)}},
 		},
 	}, func(config *docker.HostConfig) {
 		config.AutoRemove = true

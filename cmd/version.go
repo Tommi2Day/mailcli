@@ -9,9 +9,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const cmdVersion = "version"
+
 var (
 	versionCmd = &cobra.Command{
-		Use:   "version",
+		Use:   cmdVersion,
 		Short: "version print version string",
 		Long:  ``,
 		Run: func(_ *cobra.Command, _ []string) {

@@ -11,6 +11,17 @@ import (
 	"github.com/tommi2day/gomodules/maillib"
 )
 
+const (
+	cmdSign   = "sign"
+	cmdVerify = "verify"
+
+	flagMethod     = "method"
+	flagPrivateKey = "private-key"
+	flagPublicKey  = "public-key"
+	flagBody       = "body"
+	flagPassphrase = "passphrase"
+)
+
 var (
 	signMethod     = ""
 	signPrivKey    = ""
@@ -28,14 +39,14 @@ var (
 	verifySignature  = ""
 
 	signCmd = &cobra.Command{
-		Use:          "sign",
+		Use:          cmdSign,
 		Short:        "Sign content and print the signature",
 		RunE:         runSign,
 		SilenceUsage: true,
 	}
 
 	verifyCmd = &cobra.Command{
-		Use:          "verify",
+		Use:          cmdVerify,
 		Short:        "Verify a mail content signature",
 		RunE:         runVerify,
 		SilenceUsage: true,
@@ -43,35 +54,35 @@ var (
 )
 
 func init() {
-	signCmd.Flags().StringVarP(&signMethod, "method", "m", "", "signing method: rsa, ecdsa, gpg, smime (required)")
-	signCmd.Flags().StringVar(&signPrivKey, "private-key", "", "private key or S/MIME certificate bundle file (required)")
-	signCmd.Flags().StringVar(&signPubKey, "public-key", "", "public key or certificate file")
-	signCmd.Flags().StringVarP(&signBody, "body", "b", "", "content to sign (required)")
-	signCmd.Flags().StringVar(&signPassphrase, "passphrase", "", "key passphrase")
+	signCmd.Flags().StringVarP(&signMethod, flagMethod, "m", "", "signing method: rsa, ecdsa, gpg, smime (required)")
+	signCmd.Flags().StringVar(&signPrivKey, flagPrivateKey, "", "private key or S/MIME certificate bundle file (required)")
+	signCmd.Flags().StringVar(&signPubKey, flagPublicKey, "", "public key or certificate file")
+	signCmd.Flags().StringVarP(&signBody, flagBody, "b", "", "content to sign (required)")
+	signCmd.Flags().StringVar(&signPassphrase, flagPassphrase, "", "key passphrase")
 	signCmd.Flags().StringVar(&signCertChain, "cert-chain", "", "comma-separated cert chain PEM files (S/MIME)")
 	signCmd.Flags().BoolVar(&signIncChain, "include-chain", false, "include cert chain in S/MIME signature")
 	bindNamedFlags(signCmd, map[string]string{
-		"sign.method":        "method",
-		"sign.private-key":   "private-key",
-		"sign.public-key":    "public-key",
-		"sign.body":          "body",
-		"sign.passphrase":    "passphrase",
+		"sign.method":        flagMethod,
+		"sign.private-key":   flagPrivateKey,
+		"sign.public-key":    flagPublicKey,
+		"sign.body":          flagBody,
+		"sign.passphrase":    flagPassphrase,
 		"sign.cert-chain":    "cert-chain",
 		"sign.include-chain": "include-chain",
 	})
 
-	verifyCmd.Flags().StringVarP(&verifyMethod, "method", "m", "", "signing method: rsa, ecdsa, gpg, smime (required)")
-	verifyCmd.Flags().StringVar(&verifyPubKey, "public-key", "", "public key or certificate file")
-	verifyCmd.Flags().StringVar(&verifyPrivKey, "private-key", "", "certificate bundle (S/MIME fallback when no public-key)")
-	verifyCmd.Flags().StringVarP(&verifyBody, "body", "b", "", "content to verify (required)")
-	verifyCmd.Flags().StringVar(&verifyPassphrase, "passphrase", "", "key passphrase")
+	verifyCmd.Flags().StringVarP(&verifyMethod, flagMethod, "m", "", "signing method: rsa, ecdsa, gpg, smime (required)")
+	verifyCmd.Flags().StringVar(&verifyPubKey, flagPublicKey, "", "public key or certificate file")
+	verifyCmd.Flags().StringVar(&verifyPrivKey, flagPrivateKey, "", "certificate bundle (S/MIME fallback when no public-key)")
+	verifyCmd.Flags().StringVarP(&verifyBody, flagBody, "b", "", "content to verify (required)")
+	verifyCmd.Flags().StringVar(&verifyPassphrase, flagPassphrase, "", "key passphrase")
 	verifyCmd.Flags().StringVar(&verifySignature, "signature", "", "base64-encoded signature to verify (required)")
 	bindNamedFlags(verifyCmd, map[string]string{
-		"verify.method":      "method",
-		"verify.public-key":  "public-key",
-		"verify.private-key": "private-key",
-		"verify.body":        "body",
-		"verify.passphrase":  "passphrase",
+		"verify.method":      flagMethod,
+		"verify.public-key":  flagPublicKey,
+		"verify.private-key": flagPrivateKey,
+		"verify.body":        flagBody,
+		"verify.passphrase":  flagPassphrase,
 		"verify.signature":   "signature",
 	})
 

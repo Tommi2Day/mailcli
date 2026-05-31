@@ -49,11 +49,11 @@ func TestSendCommand(t *testing.T) {
 	t.Run("Send missing server", func(t *testing.T) {
 		resetSMTPState()
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send without server should return an error")
@@ -62,11 +62,11 @@ func TestSendCommand(t *testing.T) {
 	t.Run("Send missing recipient", func(t *testing.T) {
 		resetSMTPState()
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--smtp.server=127.0.0.1",
-			"--smtp.subject=Test",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPServer127,
+			argSMTPSubjectTest,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send without recipient should return an error")
@@ -75,11 +75,11 @@ func TestSendCommand(t *testing.T) {
 	t.Run("Send missing subject", func(t *testing.T) {
 		resetSMTPState()
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--smtp.server=127.0.0.1",
-			"--smtp.to=test@example.com",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPServer127,
+			argSMTPTo,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send without subject should return an error")
@@ -88,14 +88,14 @@ func TestSendCommand(t *testing.T) {
 	t.Run("Send connection error to invalid port", func(t *testing.T) {
 		resetSMTPState()
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--smtp.server=127.0.0.1",
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPServer127,
 			"--smtp.port=19999",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--smtp.body=Hello",
-			"--unit-test",
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send to invalid port should return an error")
@@ -106,12 +106,12 @@ func TestSendCommand(t *testing.T) {
 		resetSMTPState()
 		// config provides smtp.server=127.0.0.1:31025 (not running)
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/mailcli.yaml",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--smtp.body=Hello",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/mailcli.yaml",
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send with config but no running server should error")

@@ -38,14 +38,14 @@ func TestMailDocker(t *testing.T) {
 		resetSMTPState()
 		h := time.Now()
 		args := []string{
-			"send",
+			cmdSend,
 			fmt.Sprintf("--smtp.server=%s", smtpServer),
 			fmt.Sprintf("--smtp.port=%d", smtpDockerPort),
 			fmt.Sprintf("--smtp.from=%s", mailFrom),
 			fmt.Sprintf("--smtp.to=%s", mailTo),
 			"--smtp.subject=Docker Test 1",
 			fmt.Sprintf("--smtp.body=Test at %s", h.Format("15:04:05")),
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "send anonym returned error: %v", err)
@@ -57,16 +57,16 @@ func TestMailDocker(t *testing.T) {
 		resetSMTPState()
 		h := time.Now()
 		args := []string{
-			"send",
+			cmdSend,
 			fmt.Sprintf("--smtp.server=%s", smtpServer),
 			fmt.Sprintf("--smtp.port=%d", smtpDockerPort),
 			fmt.Sprintf("--smtp.from=%s", mailFrom),
 			fmt.Sprintf("--smtp.to=%s", mailTo),
-			"--smtp.tls",
-			"--smtp.insecure",
+			argSMTPTLS,
+			argSMTPInsecure,
 			"--smtp.subject=Docker Test 2",
 			fmt.Sprintf("--smtp.body=TLS Test at %s", h.Format("15:04:05")),
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "send TLS returned error: %v", err)
@@ -78,7 +78,7 @@ func TestMailDocker(t *testing.T) {
 		h := time.Now()
 		attachFile := test.TestDir + "/docker/mail/ssl/ca.crt"
 		args := []string{
-			"send",
+			cmdSend,
 			fmt.Sprintf("--smtp.server=%s", smtpServer),
 			fmt.Sprintf("--smtp.port=%d", sslDockerPort),
 			fmt.Sprintf("--smtp.from=%s", rootUser),
@@ -86,12 +86,12 @@ func TestMailDocker(t *testing.T) {
 			fmt.Sprintf("--smtp.username=%s", rootUser),
 			fmt.Sprintf("--smtp.password=%s", rootPass),
 			"--smtp.ssl",
-			"--smtp.insecure",
+			argSMTPInsecure,
 			"--smtp.auth=login",
 			fmt.Sprintf("--smtp.attach=%s", attachFile),
 			"--smtp.subject=Docker Test 3",
 			fmt.Sprintf("--smtp.body=SSL+attach Test at %s", h.Format("15:04:05")),
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "send SSL returned error: %v", err)
@@ -102,18 +102,18 @@ func TestMailDocker(t *testing.T) {
 		resetSMTPState()
 		h := time.Now()
 		args := []string{
-			"send",
+			cmdSend,
 			fmt.Sprintf("--smtp.server=%s", smtpServer),
 			fmt.Sprintf("--smtp.port=%d", tlsDockerPort),
 			fmt.Sprintf("--smtp.from=%s", rootUser),
 			fmt.Sprintf("--smtp.to=%s", mailTo),
 			fmt.Sprintf("--smtp.username=%s", rootUser),
 			fmt.Sprintf("--smtp.password=%s", rootPass),
-			"--smtp.tls",
-			"--smtp.insecure",
+			argSMTPTLS,
+			argSMTPInsecure,
 			"--smtp.subject=Docker Test 4",
 			fmt.Sprintf("--smtp.body=TLS 587 Test at %s", h.Format("15:04:05")),
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "send TLS 587 returned error: %v", err)
@@ -126,14 +126,14 @@ func TestMailDocker(t *testing.T) {
 	t.Run("Imap list mailboxes", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "list",
+			cmdImap, cmdList,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
-			"--unit-test",
+			argImapSSL,
+			argImapInsecure,
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "imap list returned error: %v", err)
@@ -144,14 +144,14 @@ func TestMailDocker(t *testing.T) {
 	t.Run("Imap status", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "status",
+			cmdImap, cmdStatus,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
-			"--unit-test",
+			argImapSSL,
+			argImapInsecure,
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "imap status returned error: %v", err)
@@ -163,15 +163,15 @@ func TestMailDocker(t *testing.T) {
 	t.Run("Imap search by subject text", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "search",
+			cmdImap, cmdSearch,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
-			"--text=Docker Test",
-			"--unit-test",
+			argImapSSL,
+			argImapInsecure,
+			argTextDockerTest,
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "imap search returned error: %v", err)
@@ -182,14 +182,14 @@ func TestMailDocker(t *testing.T) {
 	t.Run("Imap read unseen messages", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "read",
+			cmdImap, cmdRead,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
-			"--unit-test",
+			argImapSSL,
+			argImapInsecure,
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "imap read returned error: %v", err)
@@ -200,17 +200,17 @@ func TestMailDocker(t *testing.T) {
 	t.Run("Imap read with save attachments", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "read",
+			cmdImap, cmdRead,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
+			argImapSSL,
+			argImapInsecure,
 			fmt.Sprintf("--imap.download-dir=%s", test.TestData),
 			"--save-attachments",
 			"--text=Docker Test 3",
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
 		assert.NoErrorf(t, err, "imap read with attachments returned error: %v", err)
@@ -222,15 +222,15 @@ func TestMailDocker(t *testing.T) {
 		resetImapState()
 		// search all messages (seen or unseen) by subject text
 		searchArgs := []string{
-			"imap", "search",
+			cmdImap, cmdSearch,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
-			"--text=Docker Test",
-			"--unit-test",
+			argImapSSL,
+			argImapInsecure,
+			argTextDockerTest,
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, searchArgs)
 		assert.NoErrorf(t, err, "search for delete test returned error: %v", err)
@@ -238,15 +238,15 @@ func TestMailDocker(t *testing.T) {
 
 		resetImapState()
 		deleteArgs := []string{
-			"imap", "delete",
+			cmdImap, cmdDelete,
 			fmt.Sprintf("--imap.server=%s", imapServer),
 			fmt.Sprintf("--imap.port=%d", imapsDockerPort),
 			fmt.Sprintf("--imap.username=%s", mailUser),
 			fmt.Sprintf("--imap.password=%s", mailPass),
-			"--imap.ssl",
-			"--imap.insecure",
-			"--ids=1",
-			"--unit-test",
+			argImapSSL,
+			argImapInsecure,
+			argIDs1,
+			argUnitTest,
 		}
 		out, err = common.CmdRun(RootCmd, deleteArgs)
 		assert.NoErrorf(t, err, "imap delete returned error: %v", err)

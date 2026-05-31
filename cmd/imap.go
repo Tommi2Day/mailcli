@@ -14,6 +14,15 @@ import (
 
 const defaultInbox = "INBOX"
 
+const (
+	cmdImap   = "imap"
+	cmdList   = "list"
+	cmdStatus = "status"
+	cmdRead   = "read"
+	cmdDelete = "delete"
+	cmdSearch = "search"
+)
+
 var (
 	imapServer        = ""
 	imapPort          = 143
@@ -34,41 +43,41 @@ var (
 	imapVerifyPass    = ""
 
 	imapCmd = &cobra.Command{
-		Use:   "imap",
+		Use:   cmdImap,
 		Short: "IMAP mail commands",
 		Long:  `Commands for reading and managing emails via IMAP`,
 	}
 
 	imapListCmd = &cobra.Command{
-		Use:          "list",
+		Use:          cmdList,
 		Short:        "List available mailboxes",
 		RunE:         imapListMailboxes,
 		SilenceUsage: true,
 	}
 
 	imapStatusCmd = &cobra.Command{
-		Use:          "status",
+		Use:          cmdStatus,
 		Short:        "Show mailbox status (total and unseen count)",
 		RunE:         imapMailboxStatus,
 		SilenceUsage: true,
 	}
 
 	imapReadCmd = &cobra.Command{
-		Use:          "read",
+		Use:          cmdRead,
 		Short:        "Read messages from mailbox (unseen by default)",
 		RunE:         imapReadMessages,
 		SilenceUsage: true,
 	}
 
 	imapDeleteCmd = &cobra.Command{
-		Use:          "delete",
+		Use:          cmdDelete,
 		Short:        "Permanently delete messages by sequence IDs",
 		RunE:         imapDeleteMessages,
 		SilenceUsage: true,
 	}
 
 	imapSearchCmd = &cobra.Command{
-		Use:          "search",
+		Use:          cmdSearch,
 		Short:        "Search messages in mailbox",
 		RunE:         imapSearch,
 		SilenceUsage: true,

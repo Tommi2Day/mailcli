@@ -85,9 +85,9 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap list missing server", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "list",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--unit-test",
+			cmdImap, cmdList,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap list without server should return an error")
@@ -96,9 +96,9 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap status missing server", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "status",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--unit-test",
+			cmdImap, cmdStatus,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap status without server should return an error")
@@ -107,9 +107,9 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap read missing server", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "read",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--unit-test",
+			cmdImap, cmdRead,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap read without server should return an error")
@@ -118,11 +118,11 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap delete missing ids", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "delete",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--imap.server=127.0.0.1",
-			"--imap.port=19999",
-			"--unit-test",
+			cmdImap, cmdDelete,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argImapServer127,
+			argImapPort19999,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap delete without ids should return an error")
@@ -131,10 +131,10 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap delete missing server", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "delete",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--ids=1",
-			"--unit-test",
+			cmdImap, cmdDelete,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argIDs1,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap delete without server should return an error")
@@ -143,11 +143,11 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap connect error to invalid port", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "list",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--imap.server=127.0.0.1",
-			"--imap.port=19999",
-			"--unit-test",
+			cmdImap, cmdList,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argImapServer127,
+			argImapPort19999,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap to invalid port should return an error")
@@ -157,10 +157,10 @@ func TestImapCommand(t *testing.T) {
 	t.Run("Imap read verify-signature flag accepted", func(t *testing.T) {
 		resetImapState()
 		args := []string{
-			"imap", "read",
-			"--config", test.TestDir + "/no_config.yaml",
+			cmdImap, cmdRead,
+			argConfig, test.TestDir + "/no_config.yaml",
 			"--verify-signature",
-			"--unit-test",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap read should fail without server")
@@ -170,9 +170,9 @@ func TestImapCommand(t *testing.T) {
 		resetImapState()
 		// config provides imap.server=127.0.0.1:31993 with SSL (not running)
 		args := []string{
-			"imap", "list",
-			"--config", test.TestDir + "/mailcli.yaml",
-			"--unit-test",
+			cmdImap, cmdList,
+			argConfig, test.TestDir + "/mailcli.yaml",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap with config but no running server should error")

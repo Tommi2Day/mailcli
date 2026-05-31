@@ -1,0 +1,27 @@
+package cmd
+
+const (
+	argUnitTest           = "--unit-test"
+	argConfig             = "--config"
+	argSMTPTo             = "--smtp.to=test@example.com"
+	argSMTPSubjectTest    = "--smtp.subject=Test"
+	argSMTPBodyHello      = "--smtp.body=Hello"
+	argSMTPServerFlagHost = "--smtp.server=flaghost.example.com"
+	argSMTPServer127      = "--smtp.server=127.0.0.1"
+	argSMTPTLS            = "--smtp.tls"
+	argSMTPInsecure       = "--smtp.insecure"
+	argImapSSL            = "--imap.ssl"
+	argImapInsecure       = "--imap.insecure"
+	argImapServer127      = "--imap.server=127.0.0.1"
+	argImapPort19999      = "--imap.port=19999"
+	argIDs1               = "--ids=1"
+	argTextDockerTest     = "--text=Docker Test"
+	dockerHostAllIfaces   = "0.0.0.0"
+	argBodyHelloWorld     = "--body=hello world"
+	argPrivKeyTmp         = "--private-key=/tmp/test.key"
+	argMethodRSA          = "--method=rsa"
+	argMethodBadMethod    = "--method=badmethod"
+	argBodyHello          = "--body=hello"
+	argMethodECDSA        = "--method=ecdsa"
+	argSignatureABC       = "--signature=abc"
+)

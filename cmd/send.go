@@ -12,6 +12,8 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
+const cmdSend = "send"
+
 var (
 	smtpServer      = ""
 	smtpPort        = 25
@@ -41,7 +43,7 @@ var (
 	smtpSignIncChain   = false
 
 	sendCmd = &cobra.Command{
-		Use:          "send",
+		Use:          cmdSend,
 		Short:        "Send an email via SMTP",
 		Long:         `Send an email using SMTP with optional SSL/TLS and file attachments`,
 		RunE:         sendMail,

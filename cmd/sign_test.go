@@ -42,11 +42,11 @@ func TestSignCommand(t *testing.T) {
 	t.Run("Sign missing method", func(t *testing.T) {
 		resetSignState()
 		args := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--body=hello world",
-			"--private-key=/tmp/test.key",
-			"--unit-test",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argBodyHelloWorld,
+			argPrivKeyTmp,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "sign without method should error")
@@ -56,11 +56,11 @@ func TestSignCommand(t *testing.T) {
 	t.Run("Sign missing body", func(t *testing.T) {
 		resetSignState()
 		args := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
-			"--private-key=/tmp/test.key",
-			"--unit-test",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
+			argPrivKeyTmp,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "sign without body should error")
@@ -70,11 +70,11 @@ func TestSignCommand(t *testing.T) {
 	t.Run("Sign missing private key", func(t *testing.T) {
 		resetSignState()
 		args := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
-			"--body=hello world",
-			"--unit-test",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
+			argBodyHelloWorld,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "sign without private key should error")
@@ -84,12 +84,12 @@ func TestSignCommand(t *testing.T) {
 	t.Run("Sign invalid method", func(t *testing.T) {
 		resetSignState()
 		args := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=badmethod",
-			"--body=hello",
-			"--private-key=/tmp/test.key",
-			"--unit-test",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodBadMethod,
+			argBodyHello,
+			argPrivKeyTmp,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "sign with invalid method should error")
@@ -99,12 +99,12 @@ func TestSignCommand(t *testing.T) {
 	t.Run("Sign with nonexistent key file", func(t *testing.T) {
 		resetSignState()
 		args := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
-			"--body=hello world",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
+			argBodyHelloWorld,
 			"--private-key=/nonexistent/path/key.pem",
-			"--unit-test",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "sign with missing key file should error")
@@ -126,14 +126,14 @@ func TestSignCommand(t *testing.T) {
 		// Sign
 		resetSignState()
 		signArgs := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
 			"--body=" + content,
 			"--private-key=" + privKeyFile,
 			"--public-key=" + pubKeyFile,
 			"--passphrase=" + keyPass,
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, signArgs)
 		require.NoErrorf(t, err, "sign returned error: %v", err)
@@ -153,13 +153,13 @@ func TestSignCommand(t *testing.T) {
 		// Verify
 		resetVerifyState()
 		verifyArgs := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
 			"--body=" + content,
 			"--public-key=" + pubKeyFile,
 			"--signature=" + sig,
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err = common.CmdRun(RootCmd, verifyArgs)
 		require.NoErrorf(t, err, "verify returned error: %v", err)
@@ -181,14 +181,14 @@ func TestSignCommand(t *testing.T) {
 
 		resetSignState()
 		signArgs := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=ecdsa",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodECDSA,
 			"--body=" + content,
 			"--private-key=" + privKeyFile,
 			"--public-key=" + pubKeyFile,
 			"--passphrase=" + keyPass,
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, signArgs)
 		require.NoErrorf(t, err, "ecdsa sign returned error: %v", err)
@@ -204,13 +204,13 @@ func TestSignCommand(t *testing.T) {
 
 		resetVerifyState()
 		verifyArgs := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=ecdsa",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodECDSA,
 			"--body=" + content,
 			"--public-key=" + pubKeyFile,
 			"--signature=" + sig,
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err = common.CmdRun(RootCmd, verifyArgs)
 		require.NoErrorf(t, err, "ecdsa verify returned error: %v", err)
@@ -224,11 +224,11 @@ func TestVerifyCommand(t *testing.T) {
 	t.Run("Verify missing method", func(t *testing.T) {
 		resetVerifyState()
 		args := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--body=hello",
-			"--signature=abc",
-			"--unit-test",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argBodyHello,
+			argSignatureABC,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "verify without method should error")
@@ -238,11 +238,11 @@ func TestVerifyCommand(t *testing.T) {
 	t.Run("Verify missing body", func(t *testing.T) {
 		resetVerifyState()
 		args := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
-			"--signature=abc",
-			"--unit-test",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
+			argSignatureABC,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "verify without body should error")
@@ -252,11 +252,11 @@ func TestVerifyCommand(t *testing.T) {
 	t.Run("Verify missing signature", func(t *testing.T) {
 		resetVerifyState()
 		args := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
-			"--body=hello",
-			"--unit-test",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
+			argBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "verify without signature should error")
@@ -266,12 +266,12 @@ func TestVerifyCommand(t *testing.T) {
 	t.Run("Verify invalid method", func(t *testing.T) {
 		resetVerifyState()
 		args := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=badmethod",
-			"--body=hello",
-			"--signature=abc",
-			"--unit-test",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodBadMethod,
+			argBodyHello,
+			argSignatureABC,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "verify with invalid method should error")
@@ -291,14 +291,14 @@ func TestVerifyCommand(t *testing.T) {
 		// Sign original content
 		resetSignState()
 		signArgs := []string{
-			"sign",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
+			cmdSign,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
 			"--body=original content",
 			"--private-key=" + privKeyFile,
 			"--public-key=" + pubKeyFile,
 			"--passphrase=" + keyPass,
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, signArgs)
 		require.NoErrorf(t, err, "sign failed: %v", err)
@@ -315,13 +315,13 @@ func TestVerifyCommand(t *testing.T) {
 		// Verify with tampered body — must fail or report invalid
 		resetVerifyState()
 		verifyArgs := []string{
-			"verify",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--method=rsa",
+			cmdVerify,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argMethodRSA,
 			"--body=tampered content",
 			"--public-key=" + pubKeyFile,
 			"--signature=" + sig,
-			"--unit-test",
+			argUnitTest,
 		}
 		out, err = common.CmdRun(RootCmd, verifyArgs)
 		// Either error or "invalid" in output

@@ -34,11 +34,11 @@ func TestConfigPrecedence(t *testing.T) {
 		// CWD is test/ (set by InitTestDirs); test/mailcli.yaml has smtp.server=127.0.0.1:31025.
 		// No --config flag → viper searches the path list and picks up the file.
 		args := []string{
-			"send",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--smtp.body=Hello",
-			"--unit-test",
+			cmdSend,
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send should fail (server not running)")
@@ -52,12 +52,12 @@ func TestConfigPrecedence(t *testing.T) {
 		resetRootState()
 		t.Setenv("MAILCLI_SMTP_SERVER", "envhost.example.com")
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--smtp.body=Hello",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send should fail connecting to env-var host")
@@ -69,9 +69,9 @@ func TestConfigPrecedence(t *testing.T) {
 		resetRootState()
 		t.Setenv("MAILCLI_IMAP_SERVER", "imapenv.example.com")
 		args := []string{
-			"imap", "list",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--unit-test",
+			cmdImap, cmdList,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "imap list should fail connecting to env-var host")
@@ -83,13 +83,13 @@ func TestConfigPrecedence(t *testing.T) {
 		resetRootState()
 		// mailcli.yaml has smtp.server=127.0.0.1; the explicit flag must win.
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/mailcli.yaml",
-			"--smtp.server=flaghost.example.com",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--smtp.body=Hello",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/mailcli.yaml",
+			argSMTPServerFlagHost,
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send should fail connecting to flag host")
@@ -102,13 +102,13 @@ func TestConfigPrecedence(t *testing.T) {
 		resetRootState()
 		t.Setenv("MAILCLI_SMTP_SERVER", "envhost.example.com")
 		args := []string{
-			"send",
-			"--config", test.TestDir + "/no_config.yaml",
-			"--smtp.server=flaghost.example.com",
-			"--smtp.to=test@example.com",
-			"--smtp.subject=Test",
-			"--smtp.body=Hello",
-			"--unit-test",
+			cmdSend,
+			argConfig, test.TestDir + "/no_config.yaml",
+			argSMTPServerFlagHost,
+			argSMTPTo,
+			argSMTPSubjectTest,
+			argSMTPBodyHello,
+			argUnitTest,
 		}
 		_, err := common.CmdRun(RootCmd, args)
 		require.Errorf(t, err, "send should fail")
