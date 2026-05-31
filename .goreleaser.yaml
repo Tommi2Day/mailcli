@@ -26,6 +26,7 @@ archives:
     strip_binary_directory: true
     files:
       - "*.md"
+      - "etc/mailcli.yaml"
 
 changelog:
   use: git
