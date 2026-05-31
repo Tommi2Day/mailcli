@@ -1,6 +1,6 @@
 module github.com/tommi2day/mailcli
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/emersion/go-imap v1.2.1
