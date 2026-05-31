@@ -11,9 +11,10 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
-	github.com/tommi2day/gomodules v1.25.0
+	github.com/tommi2day/gomodules v1.25.1
 	github.com/wneessen/go-mail v0.7.3
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -127,5 +128,4 @@ require (
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
