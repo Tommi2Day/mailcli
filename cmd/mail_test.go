@@ -170,7 +170,7 @@ func TestMailDocker(t *testing.T) {
 			fmt.Sprintf("--imap.password=%s", mailPass),
 			argImapSSL,
 			argImapInsecure,
-			argTextDockerTest,
+			argQueryDockerTest,
 			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
@@ -209,7 +209,7 @@ func TestMailDocker(t *testing.T) {
 			argImapInsecure,
 			fmt.Sprintf("--imap.download-dir=%s", test.TestData),
 			"--save-attachments",
-			"--text=Docker Test 3",
+			"--query=Docker Test 3",
 			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, args)
@@ -229,7 +229,7 @@ func TestMailDocker(t *testing.T) {
 			fmt.Sprintf("--imap.password=%s", mailPass),
 			argImapSSL,
 			argImapInsecure,
-			argTextDockerTest,
+			argQueryDockerTest,
 			argUnitTest,
 		}
 		out, err := common.CmdRun(RootCmd, searchArgs)

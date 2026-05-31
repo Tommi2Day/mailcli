@@ -43,7 +43,7 @@ func init() {
 	RootCmd.PersistentFlags().BoolVarP(&debugFlag, "debug", "", false, "verbose debug output")
 	RootCmd.PersistentFlags().BoolVarP(&infoFlag, "info", "", false, "reduced info output")
 	RootCmd.PersistentFlags().BoolVarP(&unitTestFlag, "unit-test", "", false, "redirect output for unit tests")
-	RootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "config file")
+	RootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "F", "", "config file")
 	RootCmd.PersistentFlags().BoolVarP(&noLogColorFlag, "no-color", "", false, "disable colored log output")
 
 	if err := viper.BindPFlags(RootCmd.PersistentFlags()); err != nil {

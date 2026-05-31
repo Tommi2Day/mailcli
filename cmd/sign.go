@@ -20,6 +20,21 @@ const (
 	flagPublicKey  = "public-key"
 	flagBody       = "body"
 	flagPassphrase = "passphrase"
+
+	// viper key paths for sign / verify commands
+	viperSignMethod       = "sign.method"
+	viperSignPrivateKey   = "sign.private-key"
+	viperSignPublicKey    = "sign.public-key"
+	viperSignPassphrase   = "sign.passphrase"
+	viperSignBody         = "sign.body"
+	viperSignCertChain    = "sign.cert-chain"
+	viperSignIncludeChain = "sign.include-chain"
+	viperVerifyMethod     = "verify.method"
+	viperVerifyPublicKey  = "verify.public-key"
+	viperVerifyPrivateKey = "verify.private-key"
+	viperVerifyPassphrase = "verify.passphrase"
+	viperVerifyBody       = "verify.body"
+	viperVerifySignature  = "verify.signature"
 )
 
 var (
@@ -62,13 +77,13 @@ func init() {
 	signCmd.Flags().StringVar(&signCertChain, "cert-chain", "", "comma-separated cert chain PEM files (S/MIME)")
 	signCmd.Flags().BoolVar(&signIncChain, "include-chain", false, "include cert chain in S/MIME signature")
 	bindNamedFlags(signCmd, map[string]string{
-		"sign.method":        flagMethod,
-		"sign.private-key":   flagPrivateKey,
-		"sign.public-key":    flagPublicKey,
-		"sign.body":          flagBody,
-		"sign.passphrase":    flagPassphrase,
-		"sign.cert-chain":    "cert-chain",
-		"sign.include-chain": "include-chain",
+		viperSignMethod:       flagMethod,
+		viperSignPrivateKey:   flagPrivateKey,
+		viperSignPublicKey:    flagPublicKey,
+		viperSignBody:         flagBody,
+		viperSignPassphrase:   flagPassphrase,
+		viperSignCertChain:    "cert-chain",
+		viperSignIncludeChain: "include-chain",
 	})
 
 	verifyCmd.Flags().StringVarP(&verifyMethod, flagMethod, "m", "", "signing method: rsa, ecdsa, gpg, smime (required)")
@@ -78,12 +93,12 @@ func init() {
 	verifyCmd.Flags().StringVar(&verifyPassphrase, flagPassphrase, "", "key passphrase")
 	verifyCmd.Flags().StringVar(&verifySignature, "signature", "", "base64-encoded signature to verify (required)")
 	bindNamedFlags(verifyCmd, map[string]string{
-		"verify.method":      flagMethod,
-		"verify.public-key":  flagPublicKey,
-		"verify.private-key": flagPrivateKey,
-		"verify.body":        flagBody,
-		"verify.passphrase":  flagPassphrase,
-		"verify.signature":   "signature",
+		viperVerifyMethod:     flagMethod,
+		viperVerifyPublicKey:  flagPublicKey,
+		viperVerifyPrivateKey: flagPrivateKey,
+		viperVerifyBody:       flagBody,
+		viperVerifyPassphrase: flagPassphrase,
+		viperVerifySignature:  "signature",
 	})
 
 	RootCmd.AddCommand(signCmd)
