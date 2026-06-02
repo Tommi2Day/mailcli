@@ -47,6 +47,7 @@ goreleaser build --snapshot --clean
 - `config.go` — `config show` and `config save` subcommands; reads `viper.AllSettings()` and marshals to YAML
 - `sign.go` — standalone `sign` and `verify` commands; thin wrappers around `maillib.SignMailContent` / `maillib.VerifyMailSignature`
 - `version.go` — prints version string; `Version`, `Commit`, `Date` are injected at build time via `-ldflags`
+- `wire.go` — runs its `init()` last (file sorts after all others alphabetically); copies `sendCmd.Flags()` and `imapCmd.PersistentFlags()` onto `configCmd.PersistentFlags()` so `config show`/`config save` accept those flags as overrides; provides `applyChangedConfigFlags()` called by both config subcommands
 
 **send.go specifics:**
 - `smtpTo`, `smtpCC`, `smtpBCC` are `[]string` (not `string`) bound with `StringSliceVar`, supporting comma-separated values or repeated flags.
@@ -66,10 +67,17 @@ goreleaser build --snapshot --clean
 - `effectiveSettings()` calls `viper.AllSettings()` and strips `config` and `unit-test` keys (tool-internal, not meaningful in a config file).
 - `nonZeroSettings()` recursively removes zero/false/empty/nil values via `reflect.Value.IsZero()` plus an explicit empty-slice check; used by `config save` to produce a minimal config file.
 - `config save` writes with `0o600` permissions (may contain passwords).
+- Both `configShow` and `configSave` call `applyChangedConfigFlags()` (from `wire.go`) before rendering to inject any CLI overrides into viper at `Set()` priority.
+
+**wire.go specifics:**
+- `addFlagsToConfig(src)` is called from `init()` with each source flag set. It iterates via `src.VisitAll` and registers a typed copy of each flag (bool/int/int64/stringSlice/string) on `configCmd.PersistentFlags()` without shorthand letters — shorthands are dropped to avoid conflicts between the overlapping `-S`/`-u`/`-p` shorthands used by both `sendCmd` and `imapCmd`. No `viper.BindPFlags` is called for these copies.
+- `applyChangedConfigFlags()` iterates `configCmd.PersistentFlags()`, and for each flag with `Changed=true` calls `viper.Set(name, typedValue)`. `viper.Set` has the highest priority in viper's resolution chain, so these values override config file and env vars.
+- `init()` ordering: Go processes files alphabetically within a package; `wire.go` ('w') sorts after `version.go` ('v'), guaranteeing `sendCmd` and `imapCmd` are fully initialised before `addFlagsToConfig` runs.
+- `resetConfigCmdState()` in `config_test.go` clears `Changed` on `configCmd.PersistentFlags()` as well as `configSaveCmd.Flags()` to isolate tests.
 
 **Signing integration:** `send.go:applySignature` reads `smtp.sign.*` viper keys. For S/MIME it sets `MailType.SignatureConfig` (handled by the library). For RSA/ECDSA/GPG it signs the body string and appends an inline block: `"\n\n--- <method> Signature ---\n<base64sig>"`. `imap.go:extractSignatureBlock` parses that same format during `imap read --verify-signature`.
 
-**Mail library:** `github.com/tommi2day/gomodules/maillib` is an internal library that provides `SendMailConfigType`, `ImapType`, `MailType`, `SignMailContent`, `VerifyMailSignature`, and related types. `pwlib` provides RSA/ECDSA key generation used in tests.
+**Mail library:** `git.hv.devk.de/devk-apis/dbalibs/maillib` is an internal library that provides `SendMailConfigType`, `ImapType`, `MailType`, `SignMailContent`, `VerifyMailSignature`, and related types. `pwlib` provides RSA/ECDSA key generation used in tests.
 - `ImapType.Client` is exported; `imap list` accesses it directly for the ENVELOPE fetch since the library has no header-only fetch method.
 - `SearchMessages` / `GetUnseenMessageIDs` return sequence numbers (not UIDs). `ImapMsg.UID` / `ParseMessage` → `MailType.ID` is the IMAP UID — a different identifier.
 

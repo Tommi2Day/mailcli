@@ -222,6 +222,7 @@ func buildAnnotatedDoc(settings map[string]interface{}, cfgUsed string) (*yaml.N
 }
 
 func configShow(cmd *cobra.Command, _ []string) error {
+	applyChangedConfigFlags()
 	cfgUsed := viper.ConfigFileUsed()
 	if cfgUsed == "" {
 		cfgUsed = configNone
@@ -239,6 +240,7 @@ func configShow(cmd *cobra.Command, _ []string) error {
 }
 
 func configSave(cmd *cobra.Command, _ []string) error {
+	applyChangedConfigFlags()
 	outFile := configOutput
 	if outFile == "" {
 		outFile = configName + "." + configType
@@ -258,7 +260,7 @@ func configSave(cmd *cobra.Command, _ []string) error {
 	if err = os.WriteFile(outFile, out, 0o600); err != nil {
 		return fmt.Errorf("write config to %s: %w", outFile, err)
 	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Config saved to %s\n", outFile)
+	_, err = fmt.Fprintf(cmd.OutOrStdout(), "Config saved to %s\n", outFile)
 	log.Debugf("config saved to %s", outFile)
-	return nil
+	return err
 }

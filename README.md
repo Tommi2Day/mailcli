@@ -324,10 +324,12 @@ mailcli imap search --query="spam" | xargs -I{} mailcli imap delete --ids={}
 ### config show — Print the active configuration
 
 ```sh
-mailcli config show [-F <file>] [flags]
+mailcli config show [-F <file>] [--smtp.*] [--imap.*] [flags]
 ```
 
 Prints the config file that was loaded and all resolved settings (file + environment variables + CLI flags merged) as valid YAML with inline comments. Useful for diagnosing which values are actually in effect.
+
+`config show` accepts the same `--smtp.*` and `--imap.*` flags as the `send` and `imap` commands. Values supplied this way override the config file and environment variables, so you can preview the effective config for a given set of parameters without editing any file.
 
 **Examples:**
 
@@ -340,15 +342,21 @@ mailcli config show -F /etc/mailcli.yaml
 
 # Preview what env vars contribute
 MAILCLI_SMTP_SERVER=smtp.example.com mailcli config show
+
+# Preview with explicit flag overrides
+mailcli config show --smtp.server=relay.example.com --smtp.tls --smtp.port=587
+mailcli config show --imap.server=imap.example.com --imap.ssl --imap.port=993
 ```
 
 ### config save — Save the effective configuration
 
 ```sh
-mailcli config save [--output=<path>] [flags]
+mailcli config save [--output=<path>] [--smtp.*] [--imap.*] [flags]
 ```
 
 Writes the resolved non-zero settings to a YAML config file with inline comments. Zero-value defaults are omitted. Written with `0600` permissions since the file may contain passwords.
+
+`config save` accepts the same `--smtp.*` and `--imap.*` flags as the `send` and `imap` commands, applied at highest priority (above config file and env vars). This lets you bootstrap or update a config file directly from flags without setting environment variables first.
 
 | Flag | Description |
 |------|-------------|
@@ -357,6 +365,14 @@ Writes the resolved non-zero settings to a YAML config file with inline comments
 **Examples:**
 
 ```sh
+# Bootstrap a config file using flags directly
+mailcli config save \
+  --smtp.server=smtp.example.com --smtp.port=587 --smtp.tls \
+  --smtp.username=me@example.com --smtp.password=secret --smtp.from=me@example.com \
+  --imap.server=imap.example.com --imap.port=993 --imap.ssl \
+  --imap.username=me@example.com --imap.password=secret \
+  --output=~/.config/mailcli.yaml
+
 # Bootstrap a config file from environment variables
 MAILCLI_SMTP_SERVER=smtp.example.com \
 MAILCLI_SMTP_PORT=587 \
@@ -371,9 +387,8 @@ MAILCLI_IMAP_USERNAME=me@example.com \
 MAILCLI_IMAP_PASSWORD=secret \
   mailcli config save --output=~/.config/mailcli.yaml
 
-# Copy and override one value from an existing config
-MAILCLI_SMTP_PASSWORD=new-secret \
-  mailcli config save -F /etc/mailcli.yaml --output=~/.config/mailcli.yaml
+# Copy an existing config and override one value
+mailcli config save -F /etc/mailcli.yaml --smtp.password=new-secret --output=~/.config/mailcli.yaml
 
 # Preview what would be saved (without writing)
 mailcli config show

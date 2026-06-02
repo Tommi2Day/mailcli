@@ -124,6 +124,9 @@ func resetConfigCmdState() {
 	configSaveCmd.Flags().VisitAll(func(f *pflag.Flag) {
 		f.Changed = false
 	})
+	configCmd.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+		f.Changed = false
+	})
 }
 
 func TestConfigCommand(t *testing.T) {

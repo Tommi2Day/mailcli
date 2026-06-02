@@ -1,9 +1,13 @@
 # Changelog mailcli
 
-## [1.1.0 - 2026-06-01]
-
+## [1.1.1 - 2026-06-02]
 ### Added
+- `config show` and `config save` now accept the same `--smtp.*` and `--imap.*` flags as the `send` and `imap` commands, with CLI values applied at highest priority (above config file and env vars). Example: `mailcli config save --smtp.server=relay.example.com --smtp.tls`
+### Fixed
+- IMAP message parsing: handle nil body error and enhance test coverage by upgrading to maillib 1.25.2
 
+## [1.1.0 - 2026-06-01]
+### Added
 - **send: stdin body** — body text can be piped via stdin when `--smtp.body` is not set; flag/config/env value takes precedence over stdin
 - **send: multiple recipients** — `--smtp.to`, `--smtp.cc`, and `--smtp.bcc` now accept a comma-separated list *or* the flag repeated multiple times (`--smtp.to=a@x.com --smtp.to=b@x.com`)
 - **send: positional recipient arguments** — recipients can be given as positional arguments after all flags (mailx-style: `mailcli send -s Subject addr1 addr2`); mixed with `--smtp.to` is supported
