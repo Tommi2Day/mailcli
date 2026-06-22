@@ -53,6 +53,10 @@ func init() {
 
 // Execute runs the application
 func Execute() {
+	// Default to "send" when no recognized subcommand is present.
+	if cmd, _, err := RootCmd.Find(os.Args[1:]); err == nil && cmd == RootCmd && len(os.Args) > 1 {
+		RootCmd.SetArgs(append([]string{cmdSend}, os.Args[1:]...))
+	}
 	if err := RootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
