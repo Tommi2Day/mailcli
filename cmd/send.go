@@ -68,7 +68,7 @@ func init() {
 	sendCmd.Flags().BoolVar(&smtpSSL, "smtp.ssl", false, "use SMTPS (port 465)")
 	sendCmd.Flags().BoolVar(&smtpTLS, "smtp.tls", false, "use STARTTLS (port 587)")
 	sendCmd.Flags().BoolVar(&smtpInsecure, "smtp.insecure", false, "skip TLS/SSL certificate verification")
-	sendCmd.Flags().StringVar(&smtpAuthMethod, "smtp.auth", "", "SMTP auth method (plain/login/crammd5/xoauth2)")
+	sendCmd.Flags().StringVar(&smtpAuthMethod, "smtp.auth", "", "SMTP auth method (plain/login/crammd5/xoauth2/none); defaults to plain when username+password are set")
 	sendCmd.Flags().BoolVar(&smtpContentHTML, "smtp.html", false, "send body as HTML")
 	sendCmd.Flags().Int64VarP(&smtpTimeout, "smtp.timeout", "T", 0, "connection timeout in seconds (0=default 15s)")
 	sendCmd.Flags().StringVar(&smtpHELO, "smtp.helo", "", "custom HELO hostname")
@@ -106,6 +106,10 @@ func sendMail(cmd *cobra.Command, args []string) error {
 	if subject == "" {
 		return fmt.Errorf("subject is required (--smtp.subject or smtp.subject in config)")
 	}
+	authMethod := viper.GetString("smtp.auth")
+	if authMethod != "" && authMethod != "none" && viper.GetString("smtp.password") == "" {
+		return fmt.Errorf("smtp.password is required when smtp.auth is set (use smtp.auth=none for anonymous send)")
+	}
 
 	log.Debugf("send: connecting to %s:%d", server, port)
 
@@ -125,7 +129,7 @@ func sendMail(cmd *cobra.Command, args []string) error {
 	if err := config.SendMail(mailObj, subject, body); err != nil {
 		return fmt.Errorf("send failed: %w", err)
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "Mail sent successfully")
+	log.Info("Mail sent successfully")
 	return nil
 }
 
@@ -154,7 +158,11 @@ func buildSMTPConfig(server string, port int, username, password string) *mailli
 	} else if viper.GetBool("smtp.tls") {
 		config.ServerConfig.EnableTLS(insecure)
 	}
-	if auth := viper.GetString("smtp.auth"); auth != "" {
+	auth := viper.GetString("smtp.auth")
+	if auth == "" && username != "" && password != "" {
+		auth = "plain"
+	}
+	if auth != "" && auth != "none" {
 		config.ServerConfig.SetAuthMethod(auth)
 	}
 	if timeout := viper.GetInt64("smtp.timeout"); timeout > 0 {
