@@ -1,5 +1,13 @@
 # Changelog mailcli
 
+# [1.2.0 - 2026-06-22]
+### Added
+- apk packaging
+### Changed
+- send command is now default when no subcommand is given (e.g. `mailcli -s Subject addr1`); `send` subcommand still works as before; this allows `mailcli -s Subject addr1` without the extra `send` word, similar to mailx and other mail clients
+### Fixed
+- update SMTP auth method selection to prefer `AUTH=PLAIN` when the server supports it, falling back to `AUTH=LOGIN` if PLAIN is not offered; previously LOGIN was always used if the server supported it, even if PLAIN was also supported
+
 ## [1.1.1 - 2026-06-02]
 ### Added
 - `config show` and `config save` now accept the same `--smtp.*` and `--imap.*` flags as the `send` and `imap` commands, with CLI values applied at highest priority (above config file and env vars). Example: `mailcli config save --smtp.server=relay.example.com --smtp.tls`

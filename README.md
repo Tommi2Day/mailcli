@@ -77,7 +77,14 @@ Use [`config save`](#config-save--save-the-effective-configuration) to generate 
 ## send — Send an email via SMTP
 
 ```sh
-mailcli send [flags] [recipient...]
+mailcli [send] [flags] [recipient...]
+```
+
+`send` is the **default command**: if no subcommand is given, arguments are passed directly to `send`. Both forms are equivalent:
+
+```sh
+mailcli send -t alice@example.com -s "Hello" --smtp.body="Hi"
+mailcli       -t alice@example.com -s "Hello" --smtp.body="Hi"
 ```
 
 Recipients can be given via `--smtp.to`, as a comma-separated list, as the flag repeated, or as positional arguments after all flags (mailx-style). All methods can be combined.
@@ -100,7 +107,7 @@ The body can be provided via `--smtp.body`, read from config/env, or piped throu
 | `--smtp.ssl` | Use SMTPS (implicit TLS, typically port 465) |
 | `--smtp.tls` | Use STARTTLS (typically port 587) |
 | `--smtp.insecure` | Skip TLS/SSL certificate verification |
-| `--smtp.auth` | Auth method: `plain` (default), `login`, `crammd5`, `xoauth2` |
+| `--smtp.auth` | Auth method: `plain` (default when username+password set), `login`, `crammd5`, `xoauth2`, `none` (force anonymous) |
 | `--smtp.html` | Send body as `text/html` instead of `text/plain` |
 | `--smtp.timeout` / `-T` | Connection timeout in seconds (default 15) |
 | `--smtp.helo` | Custom HELO hostname |
@@ -110,32 +117,32 @@ The body can be provided via `--smtp.body`, read from config/env, or piped throu
 
 ```sh
 # Plain-text mail (server and credentials from config file)
-mailcli send -t alice@example.com -s "Hello" --smtp.body="Hi there"
+mailcli -t alice@example.com -s "Hello" --smtp.body="Hi there"
 
 # Positional recipients — mailx-style
-mailcli send -s "Hello" alice@example.com bob@example.com
+mailcli -s "Hello" alice@example.com bob@example.com
 
 # Multiple recipients: flag + positional combined
-mailcli send -s "Team update" -t alice@example.com bob@example.com carol@example.com
+mailcli -s "Team update" -t alice@example.com bob@example.com carol@example.com
 
 # CC and BCC
-mailcli send -s "Meeting" -t alice@example.com -c bob@example.com -b carol@example.com \
+mailcli -s "Meeting" -t alice@example.com -c bob@example.com -b carol@example.com \
   --smtp.body="See you there"
 
 # Body from stdin
-echo "nightly report" | mailcli send -s "Report" ops@example.com
+echo "nightly report" | mailcli -s "Report" ops@example.com
 
-git log --oneline -10 | mailcli send -s "Recent commits" dev@example.com
+git log --oneline -10 | mailcli -s "Recent commits" dev@example.com
 
 # Full explicit flags — STARTTLS with authentication
-mailcli send \
+mailcli \
   -S smtp.example.com -P 587 --smtp.tls -T 30 \
   -u me@example.com -p secret -f me@example.com \
   -t alice@example.com -s "Report" \
   --smtp.body="See attached" -a /tmp/report.pdf
 
 # HTML mail via SMTPS (port 465)
-mailcli send \
+mailcli \
   -S mail.example.com -P 465 --smtp.ssl --smtp.insecure \
   -t team@example.com -s "Alert" \
   --smtp.body="<b>Disk full</b>" --smtp.html
