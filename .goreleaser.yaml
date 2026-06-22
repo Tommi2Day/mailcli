@@ -67,6 +67,7 @@ nfpms:
     formats:
       - rpm
       - deb
+      - apk
     provides:
       # dont use {{ .ProjectName }} here :(
       - mailcli
